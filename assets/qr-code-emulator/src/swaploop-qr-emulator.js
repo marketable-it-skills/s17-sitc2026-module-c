@@ -3,7 +3,13 @@ import QRCode from "qrcode";
 const elementName = "swaploop-qr-emulator";
 
 export class SwapLoopQrEmulator extends HTMLElement {
-  static observedAttributes = ["service-url", "scan-duration"];
+  static observedAttributes = [
+    "service-url",
+    "scan-duration",
+    "scan-request-id",
+    "cancel-request-id",
+    "reset-request-id"
+  ];
 
   #abortController = null;
   #scanning = false;
@@ -23,10 +29,25 @@ export class SwapLoopQrEmulator extends HTMLElement {
     this.#stopRequest();
   }
 
-  attributeChangedCallback() {
-    if (this.isConnected) {
-      this.#render();
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (!this.isConnected || oldValue === newValue) return;
+
+    if (name === "scan-request-id" && oldValue !== null) {
+      this.startScan();
+      return;
     }
+
+    if (name === "cancel-request-id" && oldValue !== null) {
+      this.cancelScan();
+      return;
+    }
+
+    if (name === "reset-request-id" && oldValue !== null) {
+      this.reset();
+      return;
+    }
+
+    this.#render();
   }
 
   get serviceUrl() {

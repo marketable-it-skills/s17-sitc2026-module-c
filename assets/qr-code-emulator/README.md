@@ -37,12 +37,12 @@ Import [`src/swaploop-qr-emulator.js`](src/swaploop-qr-emulator.js), then add:
 ></swaploop-qr-emulator>
 ```
 
-The Web Component contains only the scanner visualization and request logic. Its host application owns the instructions, payload display, and action buttons. Start or cancel scanning through the public methods:
+The Web Component contains only the scanner visualization and request logic. Its host application owns the instructions, payload display, and action buttons. Change the request attributes to control it without a framework ref:
 
 ```js
-scanner.startScan();
-scanner.cancelScan();
-scanner.reset();
+scanRequestId += 1;
+cancelRequestId += 1;
+resetRequestId += 1;
 ```
 
 Listen for the framework-independent events:
@@ -63,6 +63,9 @@ When the user starts a scan, the component sends exactly one `GET /api/qr/curren
 
 - `service-url`: Station Service base URL; default `http://localhost:4020`.
 - `scan-duration`: minimum duration of the visual scanning effect in milliseconds; default `2500`.
+- `scan-request-id`: changing value starts one scan.
+- `cancel-request-id`: changing value cancels the current scan.
+- `reset-request-id`: changing value clears the scanner.
 - `VITE_STATION_SERVICE_URL`: optional Station Service URL for the React demo.
 
 ## Verify
@@ -70,4 +73,7 @@ When the user starts a scan, the component sends exactly one `GET /api/qr/curren
 ```bash
 npm test
 npm run build
+npm run build:component
 ```
+
+The standalone bundle is written to `dist-component/swaploop-qr-emulator.js` and includes the QR-code rendering dependency.

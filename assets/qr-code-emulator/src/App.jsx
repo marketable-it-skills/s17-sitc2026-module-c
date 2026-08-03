@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 const serviceUrl = (import.meta.env.VITE_STATION_SERVICE_URL || "http://localhost:4020").replace(/\/$/, "");
 
@@ -7,25 +7,26 @@ function formatResourceType(value) {
 }
 
 export default function App() {
-  const scannerRef = useRef(null);
   const [qrCodes, setQrCodes] = useState([]);
   const [selectedQrId, setSelectedQrId] = useState("");
   const [controllerState, setControllerState] = useState({ type: "loading", message: "Loading QR codes…" });
   const [scannedPayload, setScannedPayload] = useState("");
+  const [scanRequestId, setScanRequestId] = useState(0);
+  const [cancelRequestId, setCancelRequestId] = useState(0);
+  const [resetRequestId, setResetRequestId] = useState(0);
   const [scanState, setScanState] = useState({
     state: "idle",
     message: "Ready to scan a simulated QR code."
   });
 
   useEffect(() => {
-    const scanner = scannerRef.current;
     const handleScan = (event) => setScannedPayload(event.detail.payload);
     const handleScanState = (event) => setScanState(event.detail);
-    scanner?.addEventListener("qr-scan", handleScan);
-    scanner?.addEventListener("qr-scan-state", handleScanState);
+    window.addEventListener("qr-scan", handleScan);
+    window.addEventListener("qr-scan-state", handleScanState);
     return () => {
-      scanner?.removeEventListener("qr-scan", handleScan);
-      scanner?.removeEventListener("qr-scan-state", handleScanState);
+      window.removeEventListener("qr-scan", handleScan);
+      window.removeEventListener("qr-scan-state", handleScanState);
     };
   }, []);
 
@@ -65,7 +66,8 @@ export default function App() {
       if (!response.ok) throw new Error(body.message || `HTTP ${response.status}`);
       setControllerState({ type: "success", message: `${body.qrId} is ready to scan` });
       setScannedPayload("");
-      scannerRef.current?.reset();
+      setScanState({ state: "idle", message: "Ready to scan a simulated QR code." });
+      setResetRequestId((value) => value + 1);
     } catch (error) {
       setControllerState({ type: "error", message: error.message });
     }
@@ -73,11 +75,11 @@ export default function App() {
 
   function startScan() {
     setScannedPayload("");
-    scannerRef.current?.startScan();
+    setScanRequestId((value) => value + 1);
   }
 
   function cancelScan() {
-    scannerRef.current?.cancelScan();
+    setCancelRequestId((value) => value + 1);
   }
 
   const selectedQrCode = qrCodes.find((qrCode) => qrCode.id === selectedQrId);
@@ -138,9 +140,11 @@ export default function App() {
         <div className="scanner-column">
           <div className="step-label">Customer application</div>
           <swaploop-qr-emulator
-            ref={scannerRef}
             service-url={serviceUrl}
             scan-duration="2500"
+            scan-request-id={scanRequestId}
+            cancel-request-id={cancelRequestId}
+            reset-request-id={resetRequestId}
           ></swaploop-qr-emulator>
 
           <section className="scanner-controls" aria-live="polite">

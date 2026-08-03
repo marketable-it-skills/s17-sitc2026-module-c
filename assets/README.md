@@ -6,6 +6,7 @@
 - `api/test-identities.json` — fixed bearer tokens and actor mappings.
 - `handouts/handout-authentication-and-test-identities.md` — authentication and role rules.
 - `handouts/handout-charging-rules.md` — deterministic duration, expiry, collection, cutoff, and billing rules.
+- `handouts/handout-qr-emulator-integration.md` — minimal React, Vue, and Angular integration examples for the supplied Web Component.
 - `bruno/` — runnable Bruno endpoint and scenario collection.
 - `tests/` — dependency-free Node.js conformance runner with concurrency and replay checks.
 - `mock-telemetry-api/` — deterministic Node.js feed with Docker support and normal, late, thermal, cutoff, and malformed batches.

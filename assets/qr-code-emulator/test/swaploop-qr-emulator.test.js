@@ -13,6 +13,26 @@ describe("swaploop-qr-emulator", () => {
     expect(customElements.get("swaploop-qr-emulator")).toBeDefined();
   });
 
+  it("starts a scan when scan-request-id changes after connection", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      status: 200,
+      ok: true,
+      json: async () => ({ payload: "sl_qr_stn_7H2K9M" })
+    })));
+
+    const element = document.createElement("swaploop-qr-emulator");
+    element.setAttribute("scan-duration", "0");
+    element.setAttribute("scan-request-id", "0");
+    document.body.append(element);
+    expect(fetch).not.toHaveBeenCalled();
+
+    const eventPromise = new Promise((resolve) => element.addEventListener("qr-scan", resolve, { once: true }));
+    element.setAttribute("scan-request-id", "1");
+    await eventPromise;
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it("retrieves the current payload and emits qr-scan", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => ({
       status: 200,

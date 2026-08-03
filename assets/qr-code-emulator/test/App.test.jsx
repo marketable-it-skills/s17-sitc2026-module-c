@@ -31,6 +31,8 @@ it("keeps scan messages, payload output, and controls in the React application",
   expect(container.querySelector(".scanner-controls")).not.toBeNull();
   expect(container.querySelector(".scan-message")).not.toBeNull();
   expect(container.querySelector(".scan-button")).not.toBeNull();
+  expect(scanner.getAttribute("scan-request-id")).toBe("0");
+  expect(scanner.hasAttribute("ref")).toBe(false);
   expect(scanner.shadowRoot.querySelector(".scan-message")).toBeNull();
   expect(scanner.shadowRoot.querySelector("button")).toBeNull();
 
