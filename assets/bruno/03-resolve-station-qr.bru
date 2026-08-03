@@ -1,0 +1,26 @@
+meta {
+  name: 03 Resolve station QR
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/qr/resolve
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{riderToken}}
+}
+
+body:json {
+  { "qrPayload": "sl_qr_stn_7H2K9M" }
+}
+
+tests {
+  test("resolves active station", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.resourceId).to.equal("station-001");
+  });
+}

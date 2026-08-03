@@ -1,22 +1,40 @@
 {
-  "name": "",
-  "displayName": "",
-  "description": "",
-  "url": "",
+  "name": "SITC2026 S17 - Module C",
+  "displayName": "SwapLoop REST API Backend",
+  "description": "Build a deterministic SwapLoop REST API for a fictional Shanghai e-bike battery swapping and monitored charging pilot. Implement the supplied OpenAPI contract with QR-based access, atomic swap and charging reservations, idempotent service transitions, telemetry-driven safety, subscriptions, role-based authorization, and a resettable compact 13-table MySQL database; verify behaviour with the provided mock feed and conformance tests.",
+  "url": "https://github.com/marketable-it-skills/s17-sitc2026-module-c",
   "skillDomainIds": [
     1
   ],
   "languages": [
     "EN"
   ],
-  "competition": "",
+  "competition": "Skills IT Training Camp 2026",
   "estTime": 3,
   "authors": [
     {
-      "name": "",
-      "url": ""
+      "name": "Zoltan Sisak",
+      "url": "https://www.linkedin.com/in/zoltan-sisak/"
     }
   ],
-  "technologies": [],
-  "tags": []
+  "technologies": [
+    "REST API",
+    "OpenAPI",
+    "MySQL",
+    "JSON",
+    "Node.js",
+    "PHP"
+  ],
+  "tags": [
+    "backend",
+    "rest-api",
+    "openapi",
+    "mysql",
+    "authentication",
+    "authorization",
+    "concurrency",
+    "idempotency",
+    "state-machine",
+    "battery-safety"
+  ]
 }

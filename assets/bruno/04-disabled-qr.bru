@@ -1,0 +1,26 @@
+meta {
+  name: 04 Reject disabled QR
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/qr/resolve
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{riderToken}}
+}
+
+body:json {
+  { "qrPayload": "sl_qr_stn_2N5W8F" }
+}
+
+tests {
+  test("returns disabled QR error", function () {
+    expect(res.status).to.equal(409);
+    expect(res.body.code).to.equal("QR_DISABLED");
+  });
+}

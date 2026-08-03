@@ -1,0 +1,108 @@
+{
+  "scheme": "Bearer",
+  "header": "Authorization",
+  "format": "Bearer <token>",
+  "notes": [
+    "Missing or unknown tokens return 401 UNAUTHORIZED.",
+    "Suspended actors authenticate but receive 403 on state-changing rider operations.",
+    "POST /reset accepts only sl_tok_assessor."
+  ],
+  "publicPaths": [
+    "GET /stations",
+    "GET /stations/{stationId}",
+    "GET /stations/{stationId}/availability"
+  ],
+  "identities": [
+    {
+      "token": "sl_tok_rider-001",
+      "actorId": "rider-001",
+      "actorType": "RIDER",
+      "role": "RIDER",
+      "status": "ACTIVE",
+      "deliveryPartnerId": null,
+      "displayName": "Lin Xiaoyu"
+    },
+    {
+      "token": "sl_tok_rider-002",
+      "actorId": "rider-002",
+      "actorType": "RIDER",
+      "role": "RIDER",
+      "status": "ACTIVE",
+      "deliveryPartnerId": null,
+      "displayName": "Chen Wei"
+    },
+    {
+      "token": "sl_tok_rider-003",
+      "actorId": "rider-003",
+      "actorType": "RIDER",
+      "role": "RIDER",
+      "status": "ACTIVE",
+      "deliveryPartnerId": null,
+      "displayName": "Zhao Min"
+    },
+    {
+      "token": "sl_tok_rider-004",
+      "actorId": "rider-004",
+      "actorType": "RIDER",
+      "role": "DELIVERY_RIDER",
+      "status": "ACTIVE",
+      "deliveryPartnerId": "partner-001",
+      "displayName": "Wang Jun"
+    },
+    {
+      "token": "sl_tok_rider-005",
+      "actorId": "rider-005",
+      "actorType": "RIDER",
+      "role": "DELIVERY_RIDER",
+      "status": "ACTIVE",
+      "deliveryPartnerId": "partner-002",
+      "displayName": "Liu Fang"
+    },
+    {
+      "token": "sl_tok_rider-006",
+      "actorId": "rider-006",
+      "actorType": "RIDER",
+      "role": "RIDER",
+      "status": "SUSPENDED",
+      "deliveryPartnerId": null,
+      "displayName": "Sun Hao"
+    },
+    {
+      "token": "sl_tok_staff-001",
+      "actorId": "staff-001",
+      "actorType": "STAFF",
+      "role": "OPERATOR_ADMIN",
+      "status": "ACTIVE",
+      "deliveryPartnerId": null,
+      "displayName": "He Lan"
+    },
+    {
+      "token": "sl_tok_staff-002",
+      "actorId": "staff-002",
+      "actorType": "STAFF",
+      "role": "SAFETY_INSPECTOR",
+      "status": "ACTIVE",
+      "deliveryPartnerId": null,
+      "displayName": "Guo Jie"
+    },
+    {
+      "token": "sl_tok_staff-003",
+      "actorId": "staff-003",
+      "actorType": "STAFF",
+      "role": "PARTNER_OPERATOR",
+      "status": "ACTIVE",
+      "deliveryPartnerId": "partner-001",
+      "displayName": "Tang Yi"
+    },
+    {
+      "token": "sl_tok_assessor",
+      "actorId": "assessor",
+      "actorType": "ASSESSOR",
+      "role": "ASSESSOR",
+      "status": "ACTIVE",
+      "deliveryPartnerId": null,
+      "displayName": "Competition Assessor",
+      "allowedOperations": ["POST /reset"]
+    }
+  ]
+}

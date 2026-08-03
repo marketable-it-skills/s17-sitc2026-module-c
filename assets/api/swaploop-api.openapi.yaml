@@ -1,0 +1,1609 @@
+openapi: 3.0.3
+info:
+  title: SwapLoop REST API
+  description: |
+    Authoritative OpenAPI contract for **SITC 2026 Skill 17 – Module C – SwapLoop REST API Backend**.
+
+    Competitors must implement every path below exactly as specified. Do not change paths, method
+    semantics, or response/error shapes. Modules D/E and automated assessment rely on this contract.
+
+    Field names and enums align with the compact 13-table canonical seed under
+    `assets/data/module-c-seed/`.
+
+    **Business timezone:** `Asia/Shanghai`. Timestamps are ISO 8601 strings with an explicit offset
+    (examples use `+08:00`).
+
+    **Deterministic clock after reset:** `2026-08-15T12:00:00+08:00`.
+
+    **Authentication:** Fixed opaque bearer tokens from
+    `assets/handouts/handout-authentication-and-test-identities.md` and
+    `assets/api/test-identities.json`. Example:
+    `Authorization: Bearer sl_tok_rider-001`.
+    `POST /reset` requires `sl_tok_assessor` only.
+
+    **Idempotency:** `POST …/access`, `POST …/confirm`, `POST …/start`, and `POST …/collect` require
+    header `Idempotency-Key`. Replaying the same key with equivalent input returns the original
+    result; conflicting input returns `409`.
+  version: 1.0.0
+  contact:
+    name: SwapLoop — Module C
+
+servers:
+  - url: http://localhost:3000
+    description: Local default (competitors may choose another port; document it)
+  - url: "{baseUrl}"
+    description: Deployed or assessor instance
+    variables:
+      baseUrl:
+        default: http://localhost:3000
+
+tags:
+  - name: Stations
+    description: Station discovery and live availability
+  - name: QR
+    description: Opaque QR resolution (identifiers only — never authorization credentials)
+  - name: Batteries
+    description: Health history and telemetry
+  - name: Swap
+    description: Swap reservations, access grants, and confirmation
+  - name: Charging
+    description: Charging reservations, access, start, and collection
+  - name: Rider
+    description: Authenticated rider activity and receipts
+  - name: Subscriptions
+    description: Plans, usage, preview, change, and cancel
+  - name: Incidents
+    description: Safety incidents and resolution
+  - name: Admin
+    description: Assessor-protected reset
+
+security:
+  - bearerAuth: []
+
+paths:
+  /stations:
+    get:
+      tags: [Stations]
+      summary: List stations
+      description: |
+        Supports nearby / location-based filtering and filters for service type and compatibility.
+        Suspended stations remain discoverable but must not offer reservable capacity.
+      security: []
+      parameters:
+        - name: lat
+          in: query
+          schema: { type: number, format: double, example: 31.2308 }
+          description: Latitude for nearby filtering
+        - name: lng
+          in: query
+          schema: { type: number, format: double, example: 121.4717 }
+          description: Longitude for nearby filtering
+        - name: radiusMeters
+          in: query
+          schema: { type: integer, example: 1500 }
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/StationType"
+        - name: voltageClass
+          in: query
+          schema:
+            $ref: "#/components/schemas/VoltageClass"
+        - name: connectorType
+          in: query
+          schema:
+            type: string
+            example: SL-48-A
+        - name: service
+          in: query
+          description: Compatibility filter (`SWAP` or `BIKE_BAY`)
+          schema:
+            type: string
+            enum: [SWAP, BIKE_BAY]
+      responses:
+        "200":
+          description: Station list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [stations]
+                properties:
+                  stations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/StationSummary"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /stations/{stationId}:
+    get:
+      tags: [Stations]
+      summary: Station detail
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/StationId"
+      responses:
+        "200":
+          description: Station detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StationDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /stations/{stationId}/availability:
+    get:
+      tags: [Stations]
+      summary: Live station availability
+      description: |
+        Derived from current resource state and active reservations. Reports ready swap bays,
+        charging units, and capacity excluded for suspended/faulted/maintenance/safety/occupied/reserved reasons.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/StationId"
+        - name: voltageClass
+          in: query
+          schema:
+            $ref: "#/components/schemas/VoltageClass"
+      responses:
+        "200":
+          description: Availability snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StationAvailability"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /qr/resolve:
+    post:
+      tags: [QR]
+      summary: Resolve opaque QR payload
+      description: |
+        Resolves a durable opaque QR identifier.
+
+        - Active **station** QR → public station details and availability
+        - **Bay / charging-unit** QR → identifies the physical resource but grants no access
+        - **Battery** QR → may verify a returned managed battery during swap confirmation
+        - Unknown, disabled, replaced, or mismatched identifiers → explicit machine-readable errors
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QrResolveRequest"
+            examples:
+              station:
+                value: { qrPayload: sl_qr_stn_7H2K9M }
+              disabled:
+                value: { qrPayload: sl_qr_stn_2N5W8F }
+              unknown:
+                value: { qrPayload: sl_qr_unknown_Z9Z9Z9 }
+      responses:
+        "200":
+          description: Resolved QR target
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QrResolveResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Unknown QR where disclosure is safe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                notFound:
+                  value:
+                    code: QR_NOT_FOUND
+                    message: Unknown QR identifier
+        "409":
+          description: Disabled, replaced, or mismatched QR
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                disabled:
+                  value:
+                    code: QR_DISABLED
+                    message: QR identifier is disabled
+                mismatch:
+                  value:
+                    code: QR_RESOURCE_MISMATCH
+                    message: QR does not match the expected resource
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /batteries/{batteryId}/health-history:
+    get:
+      tags: [Batteries]
+      summary: Append-only health assessment history
+      parameters:
+        - $ref: "#/components/parameters/BatteryId"
+      responses:
+        "200":
+          description: Versioned health assessments (oldest to newest or documented order)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [batteryId, assessments]
+                properties:
+                  batteryId:
+                    type: string
+                    example: battery-006
+                  assessments:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/HealthAssessment"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /telemetry/readings:
+    post:
+      tags: [Batteries]
+      summary: Accept a telemetry reading
+      description: |
+        Accept raw telemetry from the mock feed. Preserve both the received payload and validation
+        result. Handle malformed, partial, late, and stale readings without corrupting valid history.
+        A `thermalAnomaly` flag forces `QUARANTINE` and automatically creates an incident.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelemetryReadingRequest"
+            examples:
+              valid:
+                value:
+                  batteryId: battery-001
+                  measuredAt: "2026-08-15T12:05:00+08:00"
+                  temperatureC: 41.0
+                  cycleCountDelta: 1
+                  thermalAnomaly: false
+              thermal:
+                value:
+                  batteryId: battery-006
+                  measuredAt: "2026-08-15T10:30:00+08:00"
+                  temperatureC: 62.7
+                  cycleCountDelta: 1
+                  thermalAnomaly: true
+      responses:
+        "201":
+          description: Reading accepted (may be VALID, VALID_LATE, MALFORMED, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelemetryReading"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /swap-reservations:
+    post:
+      tags: [Swap]
+      summary: Create swap reservation
+      description: |
+        Atomically creates one short-lived reservation for an eligible ready battery and available
+        swap bay. Concurrent requests must never reserve the same bay or outgoing battery.
+        Partner priority windows apply only to eligible partner riders and never bypass safety.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSwapReservationRequest"
+            example:
+              stationId: station-001
+              voltageClass: "48V"
+              connectorType: SL-48-A
+      responses:
+        "201":
+          description: Reservation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SwapReservation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /swap-reservations/{id}:
+    get:
+      tags: [Swap]
+      summary: Get swap reservation status
+      parameters:
+        - $ref: "#/components/parameters/ReservationId"
+      responses:
+        "200":
+          description: Current reservation state and server-determined expiry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SwapReservation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /swap-reservations/{id}/access:
+    post:
+      tags: [Swap]
+      summary: Issue swap bay access grant (idempotent)
+      description: |
+        Validates authentication, reservation ownership, state and time window, station match,
+        physical-resource match (bay QR), compatibility, and safety. Issues a short-lived
+        `AccessGrant`. Does not confirm the swap.
+      parameters:
+        - $ref: "#/components/parameters/ReservationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SwapAccessRequest"
+            example:
+              qrPayload: sl_qr_unit_B2G8L3
+      responses:
+        "200":
+          description: Access grant issued (or original result on idempotent replay)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessGrant"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /swap-reservations/{id}/confirm:
+    post:
+      tags: [Swap]
+      summary: Confirm physical swap (idempotent)
+      description: |
+        Creates exactly one swap transaction, releases the reservation, assigns the outgoing
+        battery, moves the returned battery to reassessment, and records the health band valid at
+        the swap timestamp. Optional battery QR may validate the returned managed battery.
+        Failed confirmation must not partially change inventory.
+      parameters:
+        - $ref: "#/components/parameters/ReservationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SwapConfirmRequest"
+      responses:
+        "200":
+          description: Swap confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SwapTransaction"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /charging-reservations:
+    post:
+      tags: [Charging]
+      summary: Create charging reservation
+      description: |
+        Atomically reserves exactly one compatible `BIKE_BAY` for a rider whose e-bike has an
+        integrated battery. Other removable batteries are outside this pilot's scope.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateChargingReservationRequest"
+            example:
+              stationId: station-001
+              voltageClass: "48V"
+              connectorType: GB-AC-48
+      responses:
+        "201":
+          description: Reservation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChargingReservation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /charging-reservations/{id}:
+    get:
+      tags: [Charging]
+      summary: Get charging reservation / session status
+      parameters:
+        - $ref: "#/components/parameters/ReservationId"
+      responses:
+        "200":
+          description: Current charging reservation and derived session timestamps
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChargingReservation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /charging-reservations/{id}/access:
+    post:
+      tags: [Charging]
+      summary: Issue charging-unit access grant (idempotent)
+      parameters:
+        - $ref: "#/components/parameters/ReservationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChargingAccessRequest"
+            example:
+              qrPayload: sl_qr_unit_D4H6N5
+      responses:
+        "200":
+          description: Access grant issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessGrant"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /charging-reservations/{id}/start:
+    post:
+      tags: [Charging]
+      summary: Start charging (idempotent)
+      description: |
+        Starts charging only from state `reserved`. Duration, readiness, collection deadline, and
+        safety cutoffs are server-determined from the charging-rule handout and seeded data.
+        Client-supplied transition timestamps are rejected.
+      parameters:
+        - $ref: "#/components/parameters/ReservationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+      responses:
+        "200":
+          description: Charging started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChargingReservation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /charging-reservations/{id}/collect:
+    post:
+      tags: [Charging]
+      summary: Collect after charging (idempotent)
+      description: Collects only from `ready_for_collection`, then releases the unit.
+      parameters:
+        - $ref: "#/components/parameters/ReservationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+      responses:
+        "200":
+          description: Collected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChargingReservation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /me/activity:
+    get:
+      tags: [Rider]
+      summary: Authenticated rider activity
+      description: Combined swap and charging history for the authenticated rider.
+      responses:
+        "200":
+          description: Activity feed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RiderActivity"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /transactions/{id}/receipt:
+    get:
+      tags: [Rider]
+      summary: Service receipt
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: swap-tx-001
+      responses:
+        "200":
+          description: Receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Receipt"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /subscriptions/{id}/usage:
+    get:
+      tags: [Subscriptions]
+      summary: Subscription usage for the active billing period
+      parameters:
+        - $ref: "#/components/parameters/SubscriptionId"
+      responses:
+        "200":
+          description: Usage snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionUsage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /subscriptions/{id}/preview-change:
+    post:
+      tags: [Subscriptions]
+      summary: Preview plan change
+      description: |
+        Proration uses exact calendar days in the active billing period and rounds monetary values
+        with `NEAREST_WHOLE_CNY`. Preview and confirmed change must be reproducible at billing boundaries.
+      parameters:
+        - $ref: "#/components/parameters/SubscriptionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanChangeRequest"
+            example:
+              toPlanId: plan-003
+              effectiveDate: "2026-08-16"
+      responses:
+        "200":
+          description: Plan-change preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanChangePreview"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /subscriptions/{id}/change:
+    post:
+      tags: [Subscriptions]
+      summary: Confirm plan change
+      parameters:
+        - $ref: "#/components/parameters/SubscriptionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanChangeRequest"
+      responses:
+        "200":
+          description: Plan changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /subscriptions/{id}/cancel:
+    post:
+      tags: [Subscriptions]
+      summary: Cancel subscription
+      parameters:
+        - $ref: "#/components/parameters/SubscriptionId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                atPeriodEnd:
+                  type: boolean
+                  default: true
+      responses:
+        "200":
+          description: Cancellation accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /incidents:
+    get:
+      tags: [Incidents]
+      summary: List incidents
+      description: Operators and authorized safety inspectors can list incidents.
+      responses:
+        "200":
+          description: Incident list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [incidents]
+                properties:
+                  incidents:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Incident"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Incidents]
+      summary: Report a safety concern
+      description: Riders may report safety concerns. Thermal anomalies and charging safety cutoffs also create incidents automatically.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateIncidentRequest"
+      responses:
+        "201":
+          description: Incident created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /incidents/{id}/resolve:
+    post:
+      tags: [Incidents]
+      summary: Resolve an incident
+      description: |
+        Only authorized inspectors can record inspection and resolution actions.
+        Resolving must not silently return an asset to service unless its safety state explicitly permits that transition.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: incident-002
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolveIncidentRequest"
+      responses:
+        "200":
+          description: Incident resolved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+
+  /reset:
+    post:
+      tags: [Admin]
+      summary: Restore canonical seed state
+      description: |
+        Restores the canonical dataset exactly, including frozen time and all identifiers, and
+        removes mutations created since the previous reset.
+        Requires `Authorization: Bearer sl_tok_assessor`. All other identities must receive `403`.
+      responses:
+        "200":
+          description: Reset completed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, frozenNow, resetAt]
+                properties:
+                  status:
+                    type: string
+                    example: RESET_COMPLETE
+                  frozenNow:
+                    $ref: "#/components/schemas/DateTimeOffset"
+                  resetAt:
+                    $ref: "#/components/schemas/DateTimeOffset"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: |
+        Fixed opaque token from `assets/api/test-identities.json`.
+        Examples: `sl_tok_rider-001`, `sl_tok_staff-002`, `sl_tok_assessor`.
+        See `assets/handouts/handout-authentication-and-test-identities.md`.
+
+  parameters:
+    StationId:
+      name: stationId
+      in: path
+      required: true
+      schema:
+        type: string
+        example: station-001
+    BatteryId:
+      name: batteryId
+      in: path
+      required: true
+      schema:
+        type: string
+        example: battery-006
+    ReservationId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        example: reservation-001
+    SubscriptionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        example: sub-001
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        example: idem-access-swap-001
+      description: Client-supplied key for safe retries of access / confirm / start / collect
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: UNAUTHORIZED
+            message: Missing or invalid authentication
+    Forbidden:
+      description: Insufficient role, suspended account, failed ownership, or unauthorized resource access
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: FORBIDDEN
+            message: Insufficient permissions
+    NotFound:
+      description: Unknown resource
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: NOT_FOUND
+            message: Resource not found
+    Conflict:
+      description: Reservation collision, invalid state transition, duplicate use, or idempotency conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: CONFLICT
+            message: Conflicting request
+    UnprocessableEntity:
+      description: Syntactically valid request that fails validation, compatibility, or business rules
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: VALIDATION_FAILED
+            message: Request failed business validation
+            details:
+              - field: voltageClass
+                issue: Incompatible with vehicle profile
+
+  schemas:
+    DateTimeOffset:
+      type: string
+      format: date-time
+      description: ISO 8601 timestamp with explicit offset
+      example: "2026-08-15T12:00:00+08:00"
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code
+          example: QR_DISABLED
+        message:
+          type: string
+          description: Human-readable message
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              issue: { type: string }
+          description: Optional field-level details
+
+    MutationMeta:
+      type: object
+      description: Every successful mutation returns a stable id, current state, and server timestamp
+      required: [id, state, timestamp]
+      properties:
+        id: { type: string }
+        state: { type: string }
+        timestamp:
+          $ref: "#/components/schemas/DateTimeOffset"
+
+    StationType:
+      type: string
+      enum: [SWAP, CHARGING, HYBRID]
+
+    VoltageClass:
+      type: string
+      enum: ["48V", "60V"]
+
+    HealthBand:
+      type: string
+      enum: [HEALTHY, WATCH, QUARANTINE, RETIRE, UNKNOWN]
+
+    StationSummary:
+      type: object
+      required: [id, name, type, lifecycleState, latitude, longitude]
+      properties:
+        id: { type: string, example: station-001 }
+        communityId: { type: string, example: community-001 }
+        name: { type: string, example: Haitang Garden East Gate }
+        type:
+          $ref: "#/components/schemas/StationType"
+        lifecycleState:
+          type: string
+          enum: [ACTIVE, SUSPENDED]
+          example: ACTIVE
+        latitude: { type: number, format: double, example: 31.2308 }
+        longitude: { type: number, format: double, example: 121.4717 }
+        address: { type: string }
+        serviceRadiusMeters: { type: integer, example: 700 }
+        opensAt: { type: string, example: "00:00" }
+        closesAt: { type: string, example: "24:00" }
+        suspensionReason:
+          type: string
+          nullable: true
+        distanceMeters:
+          type: number
+          description: Present when nearby filtering is applied
+
+    StationDetail:
+      allOf:
+        - $ref: "#/components/schemas/StationSummary"
+        - type: object
+          properties:
+            compatibility:
+              type: object
+              properties:
+                voltageClasses:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/VoltageClass"
+                connectorTypes:
+                  type: array
+                  items: { type: string }
+                services:
+                  type: array
+                  items:
+                    type: string
+                    enum: [SWAP, BIKE_BAY]
+
+    SwapBayAvailability:
+      type: object
+      required: [id, label, state, voltageClass, connectorType]
+      properties:
+        id: { type: string, example: unit-001 }
+        label: { type: string, example: S01 }
+        state:
+          type: string
+          enum: [READY, RESERVED, CHARGING, FAULTED, QUARANTINED, MAINTENANCE, SAFETY_BLOCKED, OCCUPIED]
+        voltageClass:
+          $ref: "#/components/schemas/VoltageClass"
+        connectorType: { type: string, example: SL-48-A }
+        currentBatteryId:
+          type: string
+          nullable: true
+        partnerReservedForId:
+          type: string
+          nullable: true
+        reservable: { type: boolean }
+        exclusionReason:
+          type: string
+          nullable: true
+
+    ChargingUnitAvailability:
+      type: object
+      required: [id, label, type, state, voltageClass, connectorType]
+      properties:
+        id: { type: string, example: unit-003 }
+        label: { type: string, example: L01 }
+        type:
+          type: string
+          enum: [BIKE_BAY]
+        state:
+          type: string
+          enum: [AVAILABLE, CHARGING, READY_FOR_COLLECTION, BLOCKED, FAULTED, MAINTENANCE, RESERVED]
+        voltageClass:
+          $ref: "#/components/schemas/VoltageClass"
+        connectorType: { type: string, example: GB-AC-48 }
+        blockedReason:
+          type: string
+          nullable: true
+        reservable: { type: boolean }
+        exclusionReason:
+          type: string
+          nullable: true
+
+    StationAvailability:
+      type: object
+      required: [stationId, lifecycleState, swapBays, chargingUnits, generatedAt]
+      properties:
+        stationId: { type: string, example: station-001 }
+        lifecycleState:
+          type: string
+          enum: [ACTIVE, SUSPENDED]
+        reservable:
+          type: boolean
+          description: False when station is suspended or otherwise non-reservable
+        swapBays:
+          type: array
+          items:
+            $ref: "#/components/schemas/SwapBayAvailability"
+        chargingUnits:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChargingUnitAvailability"
+        generatedAt:
+          $ref: "#/components/schemas/DateTimeOffset"
+
+    QrResourceType:
+      type: string
+      enum: [STATION, SWAP_BAY, CHARGING_UNIT, BATTERY]
+
+    QrResolveRequest:
+      type: object
+      required: [qrPayload]
+      properties:
+        qrPayload:
+          type: string
+          description: Opaque QR token from the physical label
+          example: sl_qr_stn_7H2K9M
+        reservationId:
+          type: string
+          description: Optional context when resolving during an active reservation flow
+          nullable: true
+
+    QrResolveResponse:
+      type: object
+      required: [qrPayload, resourceType, resourceId, status]
+      properties:
+        qrPayload: { type: string }
+        qrIdentifierId: { type: string, example: qr-001 }
+        resourceType:
+          $ref: "#/components/schemas/QrResourceType"
+        resourceId: { type: string, example: station-001 }
+        status:
+          type: string
+          enum: [ACTIVE, DISABLED, REPLACED]
+        station:
+          $ref: "#/components/schemas/StationDetail"
+          description: Present for active station QR resolutions
+        availability:
+          $ref: "#/components/schemas/StationAvailability"
+          description: Present for active station QR resolutions
+        resource:
+          type: object
+          description: Present for bay / unit / battery resolutions (identifies only; grants no access)
+          additionalProperties: true
+
+    HealthAssessment:
+      type: object
+      required: [id, batteryId, band, source, effectiveFrom]
+      properties:
+        id: { type: string, example: health-006b }
+        batteryId: { type: string, example: battery-006 }
+        band:
+          $ref: "#/components/schemas/HealthBand"
+        source:
+          type: string
+          enum: [TABLE, THERMAL_ANOMALY_OVERRIDE, STALE_TELEMETRY]
+        effectiveFrom:
+          $ref: "#/components/schemas/DateTimeOffset"
+        effectiveTo:
+          allOf:
+            - $ref: "#/components/schemas/DateTimeOffset"
+          nullable: true
+        cycleCount: { type: integer, example: 406 }
+        maxTemperatureC:
+          type: number
+          nullable: true
+          example: 62.7
+
+    TelemetryReadingRequest:
+      type: object
+      properties:
+        batteryId:
+          type: string
+          nullable: true
+        measuredAt:
+          allOf:
+            - $ref: "#/components/schemas/DateTimeOffset"
+          nullable: true
+        temperatureC:
+          type: number
+          nullable: true
+        cycleCountDelta:
+          type: integer
+          nullable: true
+        thermalAnomaly:
+          type: boolean
+          default: false
+        rawPayload:
+          type: string
+          description: Optional raw payload when the mock feed sends opaque bodies
+          nullable: true
+
+    TelemetryReading:
+      type: object
+      required: [id, receivedAt, validationStatus, timestamp]
+      properties:
+        id: { type: string, example: reading-006 }
+        batteryId:
+          type: string
+          nullable: true
+        measuredAt:
+          allOf:
+            - $ref: "#/components/schemas/DateTimeOffset"
+          nullable: true
+        receivedAt:
+          $ref: "#/components/schemas/DateTimeOffset"
+        temperatureC:
+          type: number
+          nullable: true
+        cycleCountDelta:
+          type: integer
+          nullable: true
+        thermalAnomaly: { type: boolean }
+        validationStatus:
+          type: string
+          enum: [VALID, VALID_LATE, VALID_STALE_AT_FROZEN_NOW, MALFORMED, PARTIAL]
+        validationErrors:
+          type: array
+          items: { type: string }
+        lateBySeconds:
+          type: integer
+          nullable: true
+        healthAssessmentId:
+          type: string
+          nullable: true
+          description: Present when a new append-only assessment was created
+        incidentId:
+          type: string
+          nullable: true
+          description: Present when thermal anomaly auto-created an incident
+        state:
+          type: string
+          example: ACCEPTED
+        timestamp:
+          $ref: "#/components/schemas/DateTimeOffset"
+
+    CreateSwapReservationRequest:
+      type: object
+      required: [stationId]
+      properties:
+        stationId: { type: string, example: station-001 }
+        voltageClass:
+          $ref: "#/components/schemas/VoltageClass"
+        connectorType: { type: string, example: SL-48-A }
+
+    SwapReservationState:
+      type: string
+      enum: [RESERVED, ACCESS_GRANTED, CONFIRMED, EXPIRED, CANCELLED]
+
+    SwapReservation:
+      type: object
+      required: [id, riderId, stationId, state, createdAt, expiresAt, timestamp]
+      properties:
+        id: { type: string, example: reservation-001 }
+        riderId: { type: string, example: rider-001 }
+        stationId: { type: string, example: station-001 }
+        bayId: { type: string, example: unit-002 }
+        batteryOutId: { type: string, example: battery-002 }
+        state:
+          $ref: "#/components/schemas/SwapReservationState"
+        createdAt:
+          $ref: "#/components/schemas/DateTimeOffset"
+        expiresAt:
+          $ref: "#/components/schemas/DateTimeOffset"
+        confirmedAt:
+          allOf:
+            - $ref: "#/components/schemas/DateTimeOffset"
+          nullable: true
+        partnerPriorityApplied: { type: boolean }
+        timestamp:
+          $ref: "#/components/schemas/DateTimeOffset"
+
+    SwapAccessRequest:
+      type: object
+      required: [qrPayload]
+      properties:
+        qrPayload:
+          type: string
+          example: sl_qr_unit_B2G8L3
+
+    AccessGrant:
+      type: object
+      description: Short-lived runtime result. It does not require a dedicated persistence table.
+      required: [id, reservationType, reservationId, riderId, resourceType, resourceId, purpose, issuedAt, expiresAt, state, timestamp]
+      properties:
+        id: { type: string, example: access-001 }
+        reservationType:
+          type: string
+          enum: [SWAP, CHARGING]
+        reservationId: { type: string }
+        riderId: { type: string }
+        resourceType:
+          $ref: "#/components/schemas/QrResourceType"
+        resourceId: { type: string }
+        purpose:
+          type: string
+          enum: [SWAP_ACCESS, CHARGING_ACCESS]
+        issuedAt:
+          $ref: "#/components/schemas/DateTimeOffset"
+        expiresAt:
+          $ref: "#/components/schemas/DateTimeOffset"
+        state:
+          type: string
+          enum: [ACTIVE, CONSUMED, EXPIRED]
+        idempotencyKey: { type: string }
+        timestamp:
+          $ref: "#/components/schemas/DateTimeOffset"
+
+    SwapConfirmRequest:
+      type: object
+      properties:
+        returnedBatteryQrPayload:
+          type: string
+          nullable: true
+          description: Optional battery QR to validate the returned managed battery
+          example: sl_qr_bat_001K7D
+
+    SwapTransaction:
+      type: object
+      required: [id, reservationId, riderId, stationId, bayId, batteryOutId, healthBandAtSwap, occurredAt, state, timestamp]
+      properties:
+        id: { type: string, example: swap-tx-001 }
+        reservationId: { type: string }
+        riderId: { type: string }
+        stationId: { type: string }
+        bayId: { type: string }
+        batteryInId:
+          type: string
+          nullable: true
+        batteryOutId: { type: string }
+        healthBandAtSwap:
+          $ref: "#/components/schemas/HealthBand"
+        occurredAt:
+          $ref: "#/components/schemas/DateTimeOffset"
+        amountCny: { type: integer, example: 0 }
+        currency:
+          type: string
+          enum: [CNY]
+          default: CNY
+        idempotencyKey: { type: string }
+        state:
+          type: string
+          example: CONFIRMED
+        timestamp:
+          $ref: "#/components/schemas/DateTimeOffset"
+
+    CreateChargingReservationRequest:
+      type: object
+      required: [stationId]
+      properties:
+        stationId: { type: string, example: station-001 }
+        voltageClass:
+          $ref: "#/components/schemas/VoltageClass"
+        connectorType: { type: string, example: GB-AC-48 }
+
+    ChargingReservationState:
+      type: string
+      enum: [RESERVED, CHARGING, READY_FOR_COLLECTION, COLLECTED, EXPIRED, SAFETY_CUTOFF]
+      description: |
+        Primary flow: reserved → charging → ready_for_collection → collected.
+        Terminal / exceptional: expired, safety_cutoff.
+
+    ChargingReservation:
+      type: object
+      required: [id, riderId, stationId, chargingUnitId, state, createdAt, expiresAt, timestamp]
+      properties:
+        id: { type: string, example: charge-res-001 }
+        riderId: { type: string, example: rider-002 }
+        stationId: { type: string }
+        chargingUnitId: { type: string, example: unit-003 }
+        state:
+          $ref: "#/components/schemas/ChargingReservationState"
+        createdAt:
+          $ref: "#/components/schemas/DateTimeOffset"
+        startsAt:
+          allOf:
+            - $ref: "#/components/schemas/DateTimeOffset"
+          nullable: true
+        expiresAt:
+          $ref: "#/components/schemas/DateTimeOffset"
+        startedAt:
+          allOf:
+            - $ref: "#/components/schemas/DateTimeOffset"
+          nullable: true
+        estimatedReadyAt:
+          allOf:
+            - $ref: "#/components/schemas/DateTimeOffset"
+          nullable: true
+        readyAt:
+          allOf:
+            - $ref: "#/components/schemas/DateTimeOffset"
+          nullable: true
+        collectionDueAt:
+          allOf:
+            - $ref: "#/components/schemas/DateTimeOffset"
+          nullable: true
+        collectedAt:
+          allOf:
+            - $ref: "#/components/schemas/DateTimeOffset"
+          nullable: true
+        cutoffAt:
+          allOf:
+            - $ref: "#/components/schemas/DateTimeOffset"
+          nullable: true
+        incidentId:
+          type: string
+          nullable: true
+        timestamp:
+          $ref: "#/components/schemas/DateTimeOffset"
+
+    ChargingAccessRequest:
+      type: object
+      required: [qrPayload]
+      properties:
+        qrPayload:
+          type: string
+          example: sl_qr_unit_D4H6N5
+
+    RiderActivityItem:
+      type: object
+      required: [id, serviceType, occurredAt, stationId]
+      properties:
+        id: { type: string }
+        serviceType:
+          type: string
+          enum: [SWAP, CHARGING]
+        occurredAt:
+          $ref: "#/components/schemas/DateTimeOffset"
+        stationId: { type: string }
+        resourceId: { type: string }
+        state: { type: string }
+        amountCny: { type: integer }
+        currency:
+          type: string
+          enum: [CNY]
+
+    RiderActivity:
+      type: object
+      required: [riderId, items]
+      properties:
+        riderId: { type: string, example: rider-001 }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RiderActivityItem"
+
+    Receipt:
+      type: object
+      required: [id, serviceType, occurredAt, stationId, billingResult, currency]
+      properties:
+        id: { type: string, example: swap-tx-001 }
+        serviceType:
+          type: string
+          enum: [SWAP, CHARGING]
+        occurredAt:
+          $ref: "#/components/schemas/DateTimeOffset"
+        stationId: { type: string }
+        resourceId: { type: string }
+        billingResult:
+          type: object
+          required: [amountCny]
+          properties:
+            amountCny: { type: integer, example: 5 }
+            type:
+              type: string
+              enum: [PAY_PER_USE, QUOTA, OVERAGE, INCLUDED]
+        currency:
+          type: string
+          enum: [CNY]
+
+    SubscriptionUsage:
+      type: object
+      required: [subscriptionId, planId, status, cycleStart, cycleEnd, usedQuota, timestamp]
+      properties:
+        subscriptionId: { type: string, example: sub-001 }
+        planId: { type: string, example: plan-002 }
+        planType:
+          type: string
+          enum: [PAY_PER_USE, MONTHLY_QUOTA, PARTNER_FLEET]
+        status:
+          type: string
+          enum: [ACTIVE, CANCELS_AT_PERIOD_END, PAST_DUE, CANCELLED]
+        cycleStart:
+          $ref: "#/components/schemas/DateTimeOffset"
+        cycleEnd:
+          $ref: "#/components/schemas/DateTimeOffset"
+        includedUses: { type: integer, example: 30 }
+        usedQuota: { type: integer, example: 18 }
+        remainingQuota:
+          type: integer
+          nullable: true
+        overageUses: { type: integer, example: 0 }
+        timestamp:
+          $ref: "#/components/schemas/DateTimeOffset"
+
+    PlanChangeRequest:
+      type: object
+      required: [toPlanId]
+      properties:
+        toPlanId: { type: string, example: plan-003 }
+        effectiveDate:
+          type: string
+          format: date
+          example: "2026-08-16"
+
+    PlanChangePreview:
+      type: object
+      required: [id, subscriptionId, fromPlanId, toPlanId, amountDueCny, roundingRule, state, timestamp]
+      properties:
+        id: { type: string, example: preview-001 }
+        subscriptionId: { type: string }
+        fromPlanId: { type: string }
+        toPlanId: { type: string }
+        effectiveDate: { type: string, format: date }
+        unusedCreditCny: { type: integer, example: 81 }
+        newPlanChargeCny: { type: integer, example: 205 }
+        amountDueCny: { type: integer, example: 124 }
+        roundingRule:
+          type: string
+          enum: [NEAREST_WHOLE_CNY]
+        state:
+          type: string
+          example: PREVIEW
+        timestamp:
+          $ref: "#/components/schemas/DateTimeOffset"
+
+    Subscription:
+      type: object
+      required: [id, ownerType, ownerId, planId, status, cycleStart, cycleEnd, state, timestamp]
+      properties:
+        id: { type: string, example: sub-001 }
+        ownerType:
+          type: string
+          enum: [RIDER, DELIVERY_PARTNER]
+        ownerId: { type: string }
+        planId: { type: string }
+        status:
+          type: string
+          enum: [ACTIVE, CANCELS_AT_PERIOD_END, PAST_DUE, CANCELLED]
+        cycleStart:
+          $ref: "#/components/schemas/DateTimeOffset"
+        cycleEnd:
+          $ref: "#/components/schemas/DateTimeOffset"
+        usedQuota: { type: integer }
+        state:
+          type: string
+        timestamp:
+          $ref: "#/components/schemas/DateTimeOffset"
+
+    CreateIncidentRequest:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [RIDER_HEAT_REPORT, RIDER_SAFETY_CONCERN, OTHER]
+        stationId: { type: string, nullable: true }
+        batteryId: { type: string, nullable: true }
+        chargingUnitId: { type: string, nullable: true }
+        description: { type: string }
+
+    ResolveIncidentRequest:
+      type: object
+      required: [resolution]
+      properties:
+        resolution: { type: string }
+        returnAssetToService:
+          type: boolean
+          default: false
+          description: Honoured only when the asset safety state explicitly permits return to service
+
+    Incident:
+      type: object
+      required: [id, type, source, detectedAt, status, severity, state, timestamp]
+      properties:
+        id: { type: string, example: incident-001 }
+        type:
+          type: string
+          enum: [THERMAL_ANOMALY, CHARGING_SAFETY_CUTOFF, RIDER_HEAT_REPORT, RIDER_SAFETY_CONCERN, OTHER]
+        source:
+          type: string
+          enum: [AUTOMATIC, RIDER_REPORT, INSPECTOR]
+        batteryId: { type: string, nullable: true }
+        stationId: { type: string, nullable: true }
+        chargingUnitId: { type: string, nullable: true }
+        reportedByRiderId: { type: string, nullable: true }
+        detectedAt:
+          $ref: "#/components/schemas/DateTimeOffset"
+        status:
+          type: string
+          enum: [OPEN, UNDER_REVIEW, RESOLVED]
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH]
+        assignedInspectorId: { type: string, nullable: true }
+        resolution: { type: string, nullable: true }
+        resolvedAt:
+          allOf:
+            - $ref: "#/components/schemas/DateTimeOffset"
+          nullable: true
+        resolvedById: { type: string, nullable: true }
+        state: { type: string }
+        timestamp:
+          $ref: "#/components/schemas/DateTimeOffset"
+

@@ -1,0 +1,12 @@
+{
+  "name": "swaploop-mock-telemetry-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deterministic mock telemetry feed for SITC 2026 Module C",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

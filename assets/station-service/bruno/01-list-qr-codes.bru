@@ -1,0 +1,24 @@
+meta {
+  name: 01 List all QR codes
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/qr-codes
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns all QR-code records", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body).to.be.an("array");
+    expect(res.body).to.have.lengthOf(9);
+  });
+
+  test("includes active and disabled QR codes", function () {
+    expect(res.body.some((item) => item.status === "ACTIVE")).to.equal(true);
+    expect(res.body.some((item) => item.status === "DISABLED")).to.equal(true);
+  });
+}
