@@ -20,6 +20,8 @@ tests {
   test("allows a disabled QR code to be simulated", function () {
     expect(res.status).to.equal(200);
     expect(res.body.qrId).to.equal("qr-004");
-    expect(res.body.payload).to.equal("sl_qr_stn_2N5W8F");
+    expect(res.body.payload).to.equal(
+      "https://app.swaploop.test/stations/station-004"
+    );
   });
 }

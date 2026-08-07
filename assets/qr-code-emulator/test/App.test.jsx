@@ -13,7 +13,8 @@ it("keeps scan messages, payload output, and controls in the React application",
       id: "qr-001",
       resource_type: "STATION",
       resource_id: "station-001",
-      qr_payload: "sl_qr_stn_7H2K9M",
+      station_name: "Haitang Garden East Gate",
+      qr_payload: "https://app.swaploop.test/stations/station-001",
       status: "ACTIVE"
     }])
   })));

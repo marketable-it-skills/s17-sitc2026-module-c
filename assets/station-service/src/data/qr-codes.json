@@ -3,63 +3,40 @@
     "id": "qr-001",
     "resource_type": "STATION",
     "resource_id": "station-001",
-    "qr_payload": "sl_qr_stn_7H2K9M",
+    "station_name": "Haitang Garden East Gate",
+    "qr_payload": "https://app.swaploop.test/stations/station-001",
     "status": "ACTIVE"
   },
   {
     "id": "qr-002",
     "resource_type": "STATION",
     "resource_id": "station-002",
-    "qr_payload": "sl_qr_stn_4P8R3D",
+    "station_name": "Canal View Delivery Hub",
+    "qr_payload": "https://app.swaploop.test/stations/station-002",
     "status": "ACTIVE"
   },
   {
     "id": "qr-003",
     "resource_type": "STATION",
     "resource_id": "station-003",
-    "qr_payload": "sl_qr_stn_9T1V6C",
+    "station_name": "Morning Bridge Charging Court",
+    "qr_payload": "https://app.swaploop.test/stations/station-003",
     "status": "ACTIVE"
   },
   {
     "id": "qr-004",
     "resource_type": "STATION",
     "resource_id": "station-004",
-    "qr_payload": "sl_qr_stn_2N5W8F",
+    "station_name": "South Gate Exchange",
+    "qr_payload": "https://app.swaploop.test/stations/station-004",
     "status": "DISABLED"
   },
   {
-    "id": "qr-101",
-    "resource_type": "STATION_UNIT",
-    "resource_id": "unit-001",
-    "qr_payload": "sl_qr_unit_A1F9K2",
-    "status": "ACTIVE"
-  },
-  {
-    "id": "qr-102",
-    "resource_type": "STATION_UNIT",
-    "resource_id": "unit-002",
-    "qr_payload": "sl_qr_unit_B2G8L3",
-    "status": "ACTIVE"
-  },
-  {
-    "id": "qr-103",
-    "resource_type": "STATION_UNIT",
-    "resource_id": "unit-003",
-    "qr_payload": "sl_qr_unit_D4H6N5",
-    "status": "ACTIVE"
-  },
-  {
-    "id": "qr-104",
-    "resource_type": "STATION_UNIT",
-    "resource_id": "unit-004",
-    "qr_payload": "sl_qr_unit_E5J5P6",
-    "status": "ACTIVE"
-  },
-  {
-    "id": "qr-201",
-    "resource_type": "BATTERY",
-    "resource_id": "battery-001",
-    "qr_payload": "sl_qr_bat_001K7D",
+    "id": "qr-005",
+    "resource_type": "STATION",
+    "resource_id": "station-005",
+    "station_name": "South Gate Night Hub",
+    "qr_payload": "https://app.swaploop.test/stations/station-005",
     "status": "ACTIVE"
   }
 ]

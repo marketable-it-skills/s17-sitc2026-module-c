@@ -4,8 +4,9 @@ export type QrCodeStatus = "ACTIVE" | "DISABLED";
 
 export interface QrCode {
   id: string;
-  resource_type: "STATION" | "STATION_UNIT" | "BATTERY";
+  resource_type: "STATION";
   resource_id: string;
+  station_name: string;
   qr_payload: string;
   status: QrCodeStatus;
 }

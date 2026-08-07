@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 
 const serviceUrl = (import.meta.env.VITE_STATION_SERVICE_URL || "http://localhost:4020").replace(/\/$/, "");
 
-function formatResourceType(value) {
-  return value.toLowerCase().split("_").map((part) => part[0].toUpperCase() + part.slice(1)).join(" ");
+function stationLabel(qrCode) {
+  return qrCode.station_name || qrCode.resource_id;
 }
 
 export default function App() {
@@ -90,20 +90,27 @@ export default function App() {
       <header className="hero">
         <div className="eyebrow"><span></span> Station Service prototype</div>
         <h1>QR scanner emulator</h1>
-        <p>Select a physical SwapLoop resource, publish its QR code, then scan it through the reusable Web Component.</p>
+        <p>
+          Select a SwapLoop station QR deep link, publish it, then scan it through
+          the reusable Web Component. Each payload opens the station hub in the SPA.
+        </p>
       </header>
 
       <section className="workspace">
         <article className="controller-card">
           <div className="step-label">Simulator controller</div>
-          <h2>Choose the next QR code</h2>
-          <p className="muted">This panel represents the assessor-side control surface. Disabled codes remain selectable for negative-path testing.</p>
+          <h2>Choose the next station QR</h2>
+          <p className="muted">
+            This panel represents the assessor-side control surface. Only station
+            posters are simulated. Disabled codes remain selectable for negative-path testing.
+          </p>
 
-          <label htmlFor="qr-code">QR-code record</label>
+          <label htmlFor="qr-code">Station QR-code record</label>
           <select id="qr-code" value={selectedQrId} onChange={(event) => setSelectedQrId(event.target.value)} disabled={!qrCodes.length}>
             {qrCodes.map((qrCode) => (
               <option key={qrCode.id} value={qrCode.id}>
-                {qrCode.id} · {qrCode.resource_type} · {qrCode.resource_id} {qrCode.status === "DISABLED" ? "(disabled)" : ""}
+                {qrCode.id} · {stationLabel(qrCode)} ({qrCode.resource_id})
+                {qrCode.status === "DISABLED" ? " (disabled)" : ""}
               </option>
             ))}
           </select>
@@ -111,12 +118,16 @@ export default function App() {
           {selectedQrCode && (
             <div className="record-preview">
               <div>
-                <span>Resource</span>
-                <strong>{formatResourceType(selectedQrCode.resource_type)}</strong>
+                <span>Station name</span>
+                <strong>{stationLabel(selectedQrCode)}</strong>
               </div>
               <div>
-                <span>Identifier</span>
+                <span>Station</span>
                 <strong>{selectedQrCode.resource_id}</strong>
+              </div>
+              <div>
+                <span>Deep link</span>
+                <strong className="payload-preview">{selectedQrCode.qr_payload}</strong>
               </div>
               <div>
                 <span>Status</span>

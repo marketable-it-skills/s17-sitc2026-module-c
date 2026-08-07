@@ -4,7 +4,15 @@ This asset contains:
 
 - a framework-independent `<swaploop-qr-emulator>` Web Component;
 - a Vite + React JavaScript application that demonstrates and tests the component;
-- a simple simulator controller that lists Station Service QR codes and selects the current code.
+- a simple simulator controller that lists Station Service **station** QR codes and selects the current code.
+
+**QR model:** each station poster encodes an HTTPS deep link such as:
+
+```text
+https://app.swaploop.test/stations/station-002
+```
+
+Cabinet, bay, and battery QR codes are not simulated. The SPA parses the path and opens `/stations/{stationId}`.
 
 ## Run the complete demo
 
@@ -50,6 +58,7 @@ Listen for the framework-independent events:
 ```js
 scanner.addEventListener("qr-scan", (event) => {
   console.log(event.detail.payload);
+  // e.g. "https://app.swaploop.test/stations/station-002"
 });
 
 scanner.addEventListener("qr-scan-state", (event) => {

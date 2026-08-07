@@ -12,14 +12,16 @@ post {
 
 body:json {
   {
-    "qrId": "qr-101"
+    "qrId": "qr-002"
   }
 }
 
 tests {
   test("selects the requested QR code", function () {
     expect(res.status).to.equal(200);
-    expect(res.body.qrId).to.equal("qr-101");
-    expect(res.body.payload).to.equal("sl_qr_unit_A1F9K2");
+    expect(res.body.qrId).to.equal("qr-002");
+    expect(res.body.payload).to.equal(
+      "https://app.swaploop.test/stations/station-002"
+    );
   });
 }

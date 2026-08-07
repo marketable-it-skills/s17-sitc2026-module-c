@@ -2,6 +2,14 @@
 
 This TypeScript/Express service provides the QR-code simulation used by the SwapLoop frontend prototype. QR-code records are stored in [`src/data/qr-codes.json`](src/data/qr-codes.json). The currently selected QR code is kept in memory and is cleared whenever the service restarts.
 
+**Station-only model:** each seeded station from Module C (`station-001` … `station-005`) has exactly one QR. The payload is an HTTPS deep link:
+
+```text
+https://app.swaploop.test/stations/{stationId}
+```
+
+Unit, cabinet, and battery QR codes are out of scope. `station-004` (SUSPENDED in the DB seed) is stored as `DISABLED` so assessors can still select it for negative-path simulation.
+
 ## Requirements
 
 - Node.js 20 or later
@@ -36,7 +44,7 @@ Content-Type: application/json
 }
 ```
 
-Any stored QR code can be selected, including a disabled code. This allows clients to test negative paths. The Station Service simulates scanning only; the Main Backend is responsible for validating QR-code status.
+Any stored QR code can be selected, including a disabled code. This allows clients to test negative paths. The Station Service simulates scanning only; the Main Backend is responsible for validating station lifecycle and authorization.
 
 ### Read the current payload
 
@@ -48,7 +56,7 @@ Successful response:
 
 ```json
 {
-  "payload": "sl_qr_stn_7H2K9M"
+  "payload": "https://app.swaploop.test/stations/station-001"
 }
 ```
 

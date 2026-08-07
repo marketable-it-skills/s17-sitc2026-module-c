@@ -38,10 +38,11 @@ label { display: block; margin-bottom: 8px; color: #395652; font-size: 13px; fon
 select { width: 100%; min-height: 50px; padding: 0 42px 0 14px; border: 1px solid #cedbd6; border-radius: 13px; color: #183a37; background: #fff; outline: none; }
 select:focus { border-color: #0d766e; box-shadow: 0 0 0 3px rgba(13,118,110,.12); }
 
-.record-preview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
+.record-preview { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 14px 0; }
 .record-preview div { min-width: 0; padding: 12px; border: 1px solid #e0e8e4; border-radius: 12px; background: #f8faf7; }
 .record-preview span { display: block; margin-bottom: 4px; color: #85938f; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .record-preview strong { display: block; overflow: hidden; color: #284744; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.record-preview .payload-preview { white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
 .record-preview .active { color: #0b7b62; }
 .record-preview .disabled { color: #b45309; }
 
