@@ -1,0 +1,33 @@
+info:
+  name: evaluate-sustained
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{baseUrl}}/batteries/battery-007/evaluate-last-charge"
+  headers:
+    - name: Authorization
+      value: "Bearer sl_tok_rider-001"
+  body:
+    type: json
+    data: ""
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("evaluate battery-007 quarantines SUSTAINED", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.batteryId).to.equal("battery-007");
+          expect(res.body.outcome).to.equal("QUARANTINED");
+          expect(res.body.reason).to.equal("SUSTAINED");
+          expect(res.body.unitId).to.equal("unit-014");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

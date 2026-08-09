@@ -1,0 +1,22 @@
+meta {
+  name: 05 Reject known battery without telemetry
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/batteries/{{batteryNoTelemetryId}}/last-charging-telemetry
+  body: none
+  auth: none
+}
+
+docs {
+  Known battery with an empty telemetryData array returns 404 NO_TELEMETRY.
+}
+
+tests {
+  test("returns 404 NO_TELEMETRY", function () {
+    expect(res.status).to.equal(404);
+    expect(res.body.code).to.equal("NO_TELEMETRY");
+  });
+}

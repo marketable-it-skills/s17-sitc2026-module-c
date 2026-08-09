@@ -1,0 +1,28 @@
+info:
+  name: ready-charging-service
+  type: http
+  seq: 20
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services/{{chargingServiceId}}/ready"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-002
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("POST /services/{id}/ready → READY_FOR_COLLECTION", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.type).to.equal("CHARGING");
+          expect(res.body.state).to.equal("READY_FOR_COLLECTION");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

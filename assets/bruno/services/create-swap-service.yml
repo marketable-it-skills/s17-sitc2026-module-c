@@ -1,0 +1,42 @@
+info:
+  name: create-swap-service
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-001
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "SWAP",
+        "stationId": "station-001"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("A3.1: POST /services creates RESERVED swap", function() {
+          expect(res.status).to.equal(201);
+          expect(res.body.type).to.equal("SWAP");
+          expect(res.body.riderId).to.equal("rider-001");
+          expect(res.body.stationId).to.equal("station-001");
+          expect(res.body.state).to.equal("RESERVED");
+          expect(res.body.unitId).to.be.a("string");
+          expect(res.body.expiresAt).to.be.a("string");
+          bru.setVar("swapServiceId", res.body.id);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

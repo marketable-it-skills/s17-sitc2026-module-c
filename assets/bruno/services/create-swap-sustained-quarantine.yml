@@ -1,0 +1,37 @@
+info:
+  name: create-swap-sustained-quarantine
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services"
+  headers:
+    - name: Authorization
+      value: "Bearer sl_tok_rider-003"
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "SWAP",
+        "stationId": "station-005"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("swap at station-005 refuses sustained battery-007", function() {
+          expect(res.status).to.equal(409);
+          expect(res.body.code).to.equal("CONFLICT");
+          expect(res.body.message).to.match(/sustained|quarantined/i);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

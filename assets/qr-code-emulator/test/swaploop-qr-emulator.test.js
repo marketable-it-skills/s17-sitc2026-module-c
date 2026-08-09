@@ -94,11 +94,42 @@ describe("swaploop-qr-emulator", () => {
     element.addEventListener("qr-scan", scanHandler);
 
     const scanPromise = element.startScan();
+    await Promise.resolve();
+    await Promise.resolve();
     await vi.advanceTimersByTimeAsync(2499);
     expect(scanHandler).not.toHaveBeenCalled();
 
     await vi.advanceTimersByTimeAsync(1);
     await scanPromise;
     expect(scanHandler).toHaveBeenCalledOnce();
+    vi.useRealTimers();
+  });
+
+  it("shows the QR under the scan line while scanning", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      status: 200,
+      ok: true,
+      json: async () => ({ payload: "https://app.swaploop.test/stations/station-002" })
+    })));
+
+    const element = document.createElement("swaploop-qr-emulator");
+    document.body.append(element);
+
+    const scanPromise = element.startScan();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const liveQr = element.shadowRoot.querySelector(".qr.qr--live");
+    expect(liveQr).not.toBeNull();
+    expect(element.shadowRoot.querySelector(".scan-line")).not.toBeNull();
+
+    await vi.advanceTimersByTimeAsync(2500);
+    await scanPromise;
+
+    expect(element.shadowRoot.querySelector(".qr.qr--live")).toBeNull();
+    expect(element.shadowRoot.querySelector(".qr")).not.toBeNull();
+    vi.useRealTimers();
   });
 });

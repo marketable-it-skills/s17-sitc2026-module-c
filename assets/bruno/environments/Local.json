@@ -1,6 +1,0 @@
-vars {
-  baseUrl: http://localhost:3000
-  riderToken: sl_tok_rider-001
-  inspectorToken: sl_tok_staff-002
-  assessorToken: sl_tok_assessor
-}

@@ -2,7 +2,7 @@
   "name": "swaploop-station-service",
   "version": "0.1.0",
   "private": true,
-  "description": "SwapLoop Station Service prototype for QR-code simulation",
+  "description": "SwapLoop Station Service prototype for QR-code and charging telemetry simulation",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",

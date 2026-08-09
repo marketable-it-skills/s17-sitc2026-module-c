@@ -6,292 +6,778 @@ Competitors will have **3 hours** to complete this module.
 
 ## Introduction
 
-SwapLoop is a fictional Shanghai community pilot exploring safer alternatives to charging e-bike batteries indoors. Riders exchange compatible removable batteries at swap stations or charge e-bikes with built-in batteries in monitored bike bays; delivery partners can receive controlled priority access; and operators and safety inspectors monitor assets and incidents.
+SwapLoop is a fictional Shanghai community pilot that offers safer alternatives to charging e-bike batteries indoors. Riders exchange compatible removable batteries at swap stations, or charge e-bikes with integrated batteries in monitored **E-bike Charging Bays**. Some stations offer only one service; **hybrid** stations offer both.
 
-This competition does **not** ask for a finished production platform. Across the modules you build **working prototypes** of selected parts of SwapLoop. This module is the backend prototype: a deterministic REST API that later frontend modules will consume.
+This competition builds **working prototypes**, not a finished production platform. **Module C** is the **Main Backend**: a deterministic REST API under `/api/v1` that Modules D SPA consume. Business rules for eligibility, reservation integrity, last-charge quarantine, live charging simulation orchestration, and pay-as-you-go price snapshots belong here.
+
+In the overall structure, the **Station Service** is a separate technical edge service that stands in for station / cabinet hardware and telemetry. **Station Service** simulates last completed charging-event telemetry for swappable battery packs, and simulated e-bike charging sessions. It is provided for this module. Station Service APIs are **unprotected** (no authentication) and the **Main Backend** is the only application that should call it. (In the intended final setup it is reachable from the Main Backend over a secure private network link, so public clients never see it.) In the competition environment you call the provided Station Service URL from your Main Backend the same way.
+
+Real payments, physical lock control, IoT devices, QR scanning / deep-link handling (Module D), monthly subscriptions, and fleet settlement are **out of scope**.
 
 ## General Description of Project and Tasks
 
-Implement an independently runnable REST API according to the provided contract. Frontend modules must be able to use it without reproducing backend business rules. Predictable behaviour and clear machine-readable errors are essential.
+Implement an independently runnable Main Backend so that later frontend modules can use it without reproducing backend business rules. The following is a high-level overview; detailed specifications are in the [Requirements](#requirements) section:
 
-The following is a high-level overview of the required capabilities; detailed specifications are in the [Requirements](#requirements) section:
+- implement authentication and authorization (opaque bearer tokens)
+- implement error handling with consistent machine-readable codes
+- serve station discovery (list, filters, detail, compatibility, optional rider availability)
+- implement unified **services** for swap and charging (short holds and state machines)
+- enforce last-charge safety via Station Service before swap reservation
+- start Station Service bike-bay charging sessions and expose their telemetry
+- snapshot pay-as-you-go prices on confirm/collect and expose the price catalog
+- restore the canonical seed via reset
 
-- **Stations:** list and detail nearby swap, bike-charging, and hybrid stations, with live availability based on resource state and reservations
-- **QR access:** resolve opaque station, unit, and battery QR codes; issue transient short-lived access grants only after authentication, ownership, and safety checks
-- **Swap workflow:** let a rider book a station bay and a ready outgoing battery, unlock the bay with a QR scan, then confirm the physical battery exchange; concurrent bookings must never assign the same bay or battery twice, and unlock/confirm must be safe to retry
-- **Charging workflow:** reserve a bike-charging bay, then run separate idempotent access, start-charging, and collection steps with server-calculated timings
-- **Battery safety:** accept telemetry, classify health bands, quarantine or retire unsafe batteries, and keep append-only assessment history
-- **Authorization:** enforce fixed bearer-token roles so riders only act on their own reservations and staff/inspectors only reach allowed operations
-- **Accounts and billing:** track plan usage, proration, plan changes, and service receipts for seeded rider and partner subscriptions
-- **Incidents:** auto-create and manage safety incidents from thermal anomalies and charging cutoffs; allow rider reports and inspector resolution
-- **Reset:** restore the canonical seeded dataset and frozen competition clock for repeatable assessment
+### Environment and provided assets
 
-### Environment and stack
+Build the API with a server-side language and framework available in the competition environment.
 
-Build the API using a server-side language and framework available in the competition environment. 
+- Use **MySQL** for persistence. Import [`assets/db/swaploop_db.sql`](./assets/db/swaploop_db.sql) .
+- Implement the API according to [`assets/api/main-backend.openapi.yaml`](./assets/api/main-backend.openapi.yaml). That document is the authoritative contract for paths, requests, responses, security, and errors.
+- A Bruno / OpenCollection suite for the **Main Backend** is provided under [`assets/bruno/`](./assets/bruno/).
+- Call the provided **Station Service** at `https://cXX-YYYY-station-service.sitc.skillsit.eu` (replace `cXX` / `YYYY` with your competition username and PIN). Its API is unprotected; only your Main Backend should use it. See [`assets/api/station-service-openapi.yaml`](./assets/api/station-service-openapi.yaml) and the Station Service Bruno suite under [`assets/station-service/bruno/`](./assets/station-service/bruno/).
 
-- Use **MySQL** for persistence.
-- Import the supplied seed database from [`assets/data/module-c-seed/swaploop-api.mysql.sql`](./assets/data/module-c-seed/swaploop-api.mysql.sql).
-- The database is intentionally limited to **13 tables**. Dataset metadata and import order are described in [`assets/data/module-c-seed/manifest.json`](./assets/data/module-c-seed/manifest.json); the three canonical JSON fixtures are in the same directory.
-- Implement the API exactly according to the provided OpenAPI document at [`assets/api/swaploop-api.openapi.yaml`](./assets/api/swaploop-api.openapi.yaml). That document is the authoritative contract for paths, requests, responses, security, and errors.
-- Use the fixed authentication tokens and roles in [`assets/handouts/handout-authentication-and-test-identities.md`](./assets/handouts/handout-authentication-and-test-identities.md).
-- Use the deterministic charging rules in [`assets/handouts/handout-charging-rules.md`](./assets/handouts/handout-charging-rules.md).
-- Run the supplied mock telemetry feed from [`assets/mock-telemetry-api/`](./assets/mock-telemetry-api/).
-- A Bruno collection is provided under [`assets/bruno/`](./assets/bruno/), and the automated conformance runner is under [`assets/tests/`](./assets/tests/).
+All Main Backend API paths in this document are relative to `/api/v1` on whatever host you run (for example `POST /auth/login` means `POST {baseUrl}/api/v1/auth/login`). Use your local development URL while building; during assessment, the deployed Main Backend is available at `https://cXX-YYYY-module-c.sitc.skillsit.eu` (replace `cXX` / `YYYY` with your competition username and PIN).
 
-The supplied assets are complete for this draft and use only deterministic local data.
+### Authentication and authorization
 
-### Technical constraints
+The Main Backend uses **opaque** bearer tokens. Store each token in the `api_token` column of the `users` table (no sessions table, no JWT).
 
-- Implement every endpoint defined in [`assets/api/swaploop-api.openapi.yaml`](./assets/api/swaploop-api.openapi.yaml). Do not invent alternate paths or response shapes; the provided OpenAPI document is the contract assessors and later frontend modules will use.
-- Return JSON for all normal and error responses.
-- Use `Asia/Shanghai` as the business timezone. Return timestamps as ISO 8601 strings with an explicit offset.
-- Treat the dataset's frozen time, `2026-08-15T12:00:00+08:00`, as the deterministic clock after reset. Time-dependent testing must not depend on the workstation clock.
-- Persist state in MySQL. Reservation allocation and all state transitions must be atomic under concurrent requests.
-- Do not silently substitute a different station, resource, voltage class, connector, or service when the requested option is unavailable.
-- QR payloads are untrusted opaque identifiers. They are identifiers only and must never act as authorization credentials.
-- Physical locks and charging hardware are simulated through logical state transitions and short-lived access grants. Access grants and QR scan attempts are runtime values and do not require database tables.
-- Real payment processing, real IoT integration, route optimization, geodata routing, native mobile applications, machine learning, battery chemistry simulation, and physical device control are out of scope.
+1. `POST /auth/login` and `POST /auth/register` verify or create the user and return `{ "token": "..." }` only.
+2. Clients send `Authorization: Bearer <token>` on protected routes.
+3. On each protected request, look up the user whose `api_token` column matches that bearer token.
+4. Missing or unknown token → `401 UNAUTHORIZED`.
+5. Suspended accounts cannot log in and cannot call protected routes → `403 FORBIDDEN`.
+6. Self-registration creates `RIDER` / `ACTIVE` only.
 
-### Common API behaviour and errors
+Plaintext password for all seeded users: `password123`.
 
-Every successful mutation must return a stable resource ID, its current state, and a server-generated timestamp.
+| Bearer token       | Actor       | Role    | Status      | Profile               |
+| ------------------ | ----------- | ------- | ----------- | --------------------- |
+| `sl_tok_rider-001` | `rider-001` | `RIDER` | `ACTIVE`    | SWAPPABLE / SL-48     |
+| `sl_tok_rider-002` | `rider-002` | `RIDER` | `ACTIVE`    | INTEGRATED / GB-AC-48 |
+| `sl_tok_rider-003` | `rider-003` | `RIDER` | `ACTIVE`    | SWAPPABLE / SL-48     |
+| `sl_tok_rider-006` | `rider-006` | `RIDER` | `SUSPENDED` | INTEGRATED / GB-AC-60 |
 
-The access, swap-confirmation, charging-start, and charging-collection operations must accept an **idempotency key**:
-
-- Repeating the same operation with the same key and equivalent input must return the original result and must not create a second resource or transition.
-- Reusing a key with conflicting input must return a conflict error.
-
-Use consistent error objects containing at least a machine-readable `code`, a human-readable `message`, and relevant field details where appropriate. Apply HTTP status codes consistently:
-
-| Status | When to use |
-| ------ | ----------- |
-| `401` | Missing or invalid authentication |
-| `403` | Insufficient role, suspended account, failed ownership, or unauthorized resource access |
-| `404` | Unknown resource or QR identifier where disclosure is safe |
-| `409` | Reservation collisions, invalid state transitions, duplicate use, or idempotency conflicts |
-| `422` | Syntactically valid requests that fail validation, compatibility, or business rules |
-| `429` | Rate-limited operations |
-| `5xx` | Unexpected server failures only |
-
-### Authentication and roles
-
-Use the fixed bearer-token scheme defined in [`assets/handouts/handout-authentication-and-test-identities.md`](./assets/handouts/handout-authentication-and-test-identities.md) and [`assets/api/test-identities.json`](./assets/api/test-identities.json). The same identities are used by the provided Bruno collection under [`assets/bruno/`](./assets/bruno/).
-
-Send the token on protected routes as:
+Example:
 
 ```http
 Authorization: Bearer sl_tok_rider-001
 ```
 
-Rules:
+### Vehicle profiles and compatibility
 
-- Missing or unknown tokens → `401`.
-- Suspended rider (`sl_tok_rider-006`) may authenticate but must receive `403` on state-changing rider operations.
-- Role and ownership checks follow the handout; insufficient role or failed ownership → `403`.
-- State-changing rider operations must be bound to the authenticated rider and their active reservation.
-- `POST /reset` accepts only `Authorization: Bearer sl_tok_assessor`.
+Vehicle profile is **mode-driven**:
 
-| Bearer token | Actor | Role | Status |
-| ------------ | ----- | ---- | ------ |
-| `sl_tok_rider-001` | `rider-001` | `RIDER` | `ACTIVE` |
-| `sl_tok_rider-002` | `rider-002` | `RIDER` | `ACTIVE` |
-| `sl_tok_rider-003` | `rider-003` | `RIDER` | `ACTIVE` |
-| `sl_tok_rider-004` | `rider-004` | `DELIVERY_RIDER` | `ACTIVE` |
-| `sl_tok_rider-005` | `rider-005` | `DELIVERY_RIDER` | `ACTIVE` |
-| `sl_tok_rider-006` | `rider-006` | `RIDER` | `SUSPENDED` |
-| `sl_tok_staff-001` | `staff-001` | `OPERATOR_ADMIN` | `ACTIVE` |
-| `sl_tok_staff-002` | `staff-002` | `SAFETY_INSPECTOR` | `ACTIVE` |
-| `sl_tok_staff-003` | `staff-003` | `PARTNER_OPERATOR` | `ACTIVE` |
-| `sl_tok_assessor` | `assessor` | `ASSESSOR` | `ACTIVE` |
+| `batteryMode` | Required field                           | Forbidden / null | Notes                                       |
+| ------------- | ---------------------------------------- | ---------------- | ------------------------------------------- |
+| `SWAPPABLE`   | `batteryType` `SL-48` \| `SL-60`         | `connectorType`  | Track `currentBatteryId` (pack on the bike) |
+| `INTEGRATED`  | `connectorType` `GB-AC-48` \| `GB-AC-60` | `batteryType`    | `currentBatteryId` is null                  |
 
-### Seed data and reset
+`voltageClass` (`48V` / `60V`) is **derived** in `/me` responses from the chosen type; it is not a separate stored column.
 
-Import the supplied seed database before running the API. The seeded API must preserve stable identifiers and contain scenarios for:
+Physical vocabulary:
 
-- swap service
-- bike charging (`BIKE_BAY`)
-- QR mismatch
-- disabled and unknown QR identifiers
-- thermal anomaly
-- stale and malformed telemetry
-- partner priority
-- charging safety cutoff
-- plan proration
-- a suspended station
+| Term                    | Meaning                                                                 |
+| ----------------------- | ----------------------------------------------------------------------- |
+| **SwapLoop Station**    | Full service location (`SWAP`, `CHARGING`, or `HYBRID`)                 |
+| **Battery Slot**        | One compartment that holds at most one battery (API unit `SWAP_BAY`)    |
+| **E-bike Charging Bay** | Bay that charges a whole e-bike with an integrated battery (`BIKE_BAY`) |
 
-The required persistence tables are `users`, `delivery_partners`, `stations`, `station_units`, `qr_identifiers`, `batteries`, `telemetry_readings`, `health_assessments`, `incidents`, `reservations`, `service_sessions`, `subscriptions`, and `priority_windows`. Swap bays and bike charging bays share `station_units`; all reservation types share `reservations`; swap and charging histories share `service_sessions`.
+### Unified services (swap and charging)
 
-`POST /reset` must restore the canonical dataset exactly, including the frozen time and all identifiers, and must remove mutations created since the previous reset. Authorize this operation only with `Authorization: Bearer sl_tok_assessor`.
+One `services` row owns the full lifecycle (`type` `SWAP` \| `CHARGING` plus type-specific `state`).
+
+- Create hold: `POST /services` with `{ type, stationId }` → `RESERVED` with `expiresAt` = now + **10 seconds**. _(Competition / marking duration only — a production system would use a much longer hold, typically 15–30 minutes.)_
+- Expiry is **not** applied inside `POST /services` itself. Later endpoints that act on a `RESERVED` hold (for example `POST /services/:serviceId/start`) must compare `expiresAt` to the current time; if the hold is overdue, set the service to `EXPIRED` and return the unit (`SWAP_BAY`: `RESERVED` → `READY`; `BIKE_BAY`: `RESERVED` → `AVAILABLE`), then reject the action with `409`.
+- One active service per rider (`409` if another is active). Overdue `RESERVED` holds must not block a new create once they have been expired.
+- Transitions are safe to retry: if a transition already succeeded, calling it again returns the current service and must not apply the change a second time.
+- Client never supplies business timestamps or prices.
+
+**Swap states:** `RESERVED` → `STARTED` (`/start`) → `CONFIRMED` (`/confirm`). Cancel from `RESERVED` or `STARTED`.
+
+**Charging states:** `RESERVED` → `CHARGING` (`/start`) → `READY_FOR_COLLECTION` (auto via `/charging-status`) → `COLLECTED` (`/collect`). Cancel only from `RESERVED`.
+
+### Battery safety via Station Service
+
+Before offering or reserving a swappable pack, the Main Backend must call Station Service:
+
+```http
+GET {STATION_SERVICE}/api/batteries/{batteryId}/last-charging-telemetry
+```
+
+Station Service returns raw samples only (`time`, `temperature`, `chargingVoltage`). **Quarantine decisions belong to the Main Backend.** Station Service does not quarantine packs.
+
+Refuse the pack (quarantine the bay / return `409 CONFLICT`) if **either** rule fails:
+
+1. **Spike** — any sample has `temperature > 55`.
+2. **Sustained heat** — a contiguous sample sequence where `time(last) − time(first) ≥ 5 minutes` and the arithmetic mean of those temperatures is `> 50`. A single hot reading alone does not satisfy Rule 2.
+
+A known battery with empty samples → Station Service `404 NO_TELEMETRY`. Do **not** treat that as healthy. Unsafe or `NO_TELEMETRY` packs must not be offered for swap.
+
+Seeded fixtures:
+
+| `batteryId`                        | Expected outcome                |
+| ---------------------------------- | ------------------------------- |
+| `battery-001`                      | Safe — reservation allowed      |
+| `battery-005`                      | Spike — quarantine / refuse     |
+| `battery-007`                      | Sustained — quarantine / refuse |
+| `battery-002`, `003`, `006`, `010` | `NO_TELEMETRY` — refuse         |
+
+Optional helper on the Main Backend: `POST /batteries/{id}/evaluate-last-charge` (same rules as inline reservation checks).
+
+### Live bike-bay charging via Station Service
+
+When a rider starts a `CHARGING` service, the Main Backend must start a Station Service session:
+
+```http
+POST   {STATION_SERVICE}/api/bike-bays/{unitId}/charging/sessions
+GET    {STATION_SERVICE}/api/bike-bays/{unitId}/charging/sessions/current
+DELETE {STATION_SERVICE}/api/bike-bays/{unitId}/charging/sessions/current
+```
+
+Behaviour:
+
+- The session lasts about **15 seconds** and emits synthetic samples (`socPercent`, `chargingPowerKw`, `temperature`).
+- If Station Service cannot start the session, the Main Backend **fails closed**: leave the hold `RESERVED` and return `502` / `409` as appropriate.
+- The SPA polls Main Backend `GET /services/{id}/charging-status` (not Station Service directly). That endpoint proxies Station Service telemetry.
+- When Station Service reports `COMPLETED` and the service is still `CHARGING`, the Main Backend auto-transitions to `READY_FOR_COLLECTION`.
+- On `collect`, clear the Station Service session best-effort (`DELETE …/charging/sessions/current`).
+
+### Pay-as-you-go pricing and receipts
+
+Competition scope is **pay-as-you-go only**. Real Alipay debit is TBD.
+
+| Service      | Key                     | Amount (CNY) | `price_code`      |
+| ------------ | ----------------------- | ------------ | ----------------- |
+| Battery swap | `SWAP` + `SL-48`        | 5            | `SWAP_SL-48`      |
+| Battery swap | `SWAP` + `SL-60`        | 7            | `SWAP_SL-60`      |
+| E-bike bay   | `CHARGING` + `GB-AC-48` | 3            | `CHARGE_GB-AC-48` |
+| E-bike bay   | `CHARGING` + `GB-AC-60` | 4            | `CHARGE_GB-AC-60` |
+
+On successful swap **confirm** or charging **collect**, look up the matching active row in the `price_list` table from the rider’s `batteryType` / `connectorType`, and in the same transaction copy the amounts into the service row’s `price_yuan` and `price_code` columns (JSON responses expose these as `priceYuan` / `priceCode`). Receipts use those snapshotted service fields. Optional catalog: `GET /price-list`.
+
+### Database structure
+
+Competitors must use the supplied dump. Do **not** invent a parallel schema that breaks the OpenAPI contract. The competition seed uses these tables:
+
+```mermaid
+erDiagram
+    users ||--o{ services : "owns"
+    stations ||--o{ station_units : "has"
+    stations ||--o{ services : "hosts"
+    station_units ||--o{ services : "reserved_on"
+    price_list ||--o| services : "snapshotted_as"
+
+    users {
+        VARCHAR id PK
+        VARCHAR email UK
+        VARCHAR password_hash
+        VARCHAR api_token UK
+        VARCHAR display_name
+        VARCHAR role
+        VARCHAR status
+        VARCHAR battery_mode
+        VARCHAR battery_type
+        VARCHAR connector_type
+        VARCHAR current_battery_id
+        VARCHAR partner_id
+    }
+
+    stations {
+        VARCHAR id PK
+        VARCHAR community_id
+        VARCHAR name
+        VARCHAR type
+        VARCHAR lifecycle_state
+        DECIMAL latitude
+        DECIMAL longitude
+        VARCHAR address
+        INT service_radius_meters
+        VARCHAR opens_at
+        VARCHAR closes_at
+        TEXT suspension_reason
+    }
+
+    station_units {
+        VARCHAR id PK
+        VARCHAR station_id FK
+        VARCHAR unit_type
+        VARCHAR label
+        VARCHAR state
+        VARCHAR battery_type
+        VARCHAR connector_type
+        VARCHAR current_battery_id
+        VARCHAR partner_reserved_for_id
+        VARCHAR blocked_reason
+    }
+
+    services {
+        VARCHAR id PK
+        VARCHAR type
+        VARCHAR user_id FK
+        VARCHAR station_id FK
+        VARCHAR unit_id FK
+        VARCHAR state
+        VARCHAR battery_out_id
+        VARCHAR battery_in_id
+        TINYINT partner_priority_applied
+        INT price_yuan
+        VARCHAR price_code
+        DATETIME created_at
+        DATETIME expires_at
+        DATETIME completed_at
+        DATETIME started_at
+    }
+
+    price_list {
+        VARCHAR price_code PK
+        VARCHAR service_type
+        VARCHAR battery_type
+        VARCHAR connector_type
+        INT amount_yuan
+        TINYINT active
+    }
+```
+
+#### Table descriptions
+
+| Table             | Description                                                                                           |
+| ----------------- | ----------------------------------------------------------------------------------------------------- |
+| **users**         | Riders. Opaque `api_token`. Mode-driven vehicle profile. SWAPPABLE riders track `current_battery_id`. |
+| **stations**      | Discoverable locations (`SWAP` / `CHARGING` / `HYBRID`) with lifecycle and geo fields.                |
+| **station_units** | `SWAP_BAY` (Battery Slot) or `BIKE_BAY` (E-bike Charging Bay) with state and compatibility fields.    |
+| **services**      | Single lifecycle row for swap or charging; price snapshot columns filled at finish.                   |
+| **price_list**    | Active PAYG catalog in whole CNY.                                                                     |
+
+### Technical constraints
+
+- Return JSON for all normal and error responses.
+- Use `Asia/Shanghai` as the business timezone. Return timestamps as ISO 8601 strings with an explicit offset.
+- Real payment processing, real IoT integration, route optimization, native mobile apps, machine learning, and battery chemistry simulation are out of scope.
 
 ## Requirements
 
-The SwapLoop API shall implement the behaviours below. All routes, request bodies, responses, and errors must conform to [`assets/api/swaploop-api.openapi.yaml`](./assets/api/swaploop-api.openapi.yaml) (see also [Minimum routes](#minimum-routes)).
+The Main Backend shall implement the behaviours below. All routes, request bodies, responses, and errors must conform to [`assets/api/main-backend.openapi.yaml`](./assets/api/main-backend.openapi.yaml).
 
-### Stations, resources, and availability
+**Important:** Do **not** reimplement Station Service routes inside the Main Backend. Call the provided Station Service for last-charge telemetry and live bike-bay sessions as specified in [Battery safety via Station Service](#battery-safety-via-station-service) and [Live bike-bay charging via Station Service](#live-bike-bay-charging-via-station-service).
 
-Implement station list, station detail, and station availability operations.
+**Database:** Import [`assets/db/swaploop_db.sql`](./assets/db/swaploop_db.sql). Competitors must not change the seed identifiers required by assessment.
 
-- The station list must support nearby or location-based filtering and filters relevant to service type and compatibility.
-- A station has type `SWAP`, `CHARGING`, or `HYBRID` and exposes its lifecycle state, location, service radius, compatibility, and current public availability.
-- Availability must be derived from current resource state and active reservations.
+### Error Handling
 
-Report:
+Endpoints must return an appropriate HTTP status with a JSON object containing at least a machine-readable `code` and a human-readable `message`:
 
-- ready swap bays grouped or filterable by voltage class and reservation status
-- bike charging bays, including supported connector and voltage class, occupancy, and charging state
-- capacity excluded because it is suspended, faulted, maintenance-blocked, safety-blocked, occupied, or reserved
+| Status | When to use                                                                               |
+| ------ | ----------------------------------------------------------------------------------------- |
+| `401`  | Missing or invalid authentication                                                         |
+| `403`  | Suspended account, failed ownership, or forbidden action                                  |
+| `404`  | Unknown resource where disclosure is safe                                                 |
+| `409`  | Reservation collisions, invalid state transitions, active-service conflicts, unsafe packs |
+| `422`  | Syntactically valid requests that fail validation or compatibility rules                  |
+| `502`  | Upstream Station Service failure when fail-closed behaviour applies                       |
+| `5xx`  | Unexpected server failures only                                                           |
 
-A suspended station remains discoverable but must not offer reservable capacity.
+Example:
 
-### QR identification and access grants
+```json
+{
+  "code": "CONFLICT",
+  "message": "You already have an active service."
+}
+```
 
-Support durable opaque QR identifiers for stations, swap bays, charging units, and managed batteries. QR payloads must contain no availability, reservation, payment, or personal information.
+### Endpoints to be implemented on the Main Backend
 
-- Resolving an active station QR returns current public station details and availability.
-- Resolving a bay or charging-unit QR identifies the physical resource but grants no access.
-- A battery QR may verify that the managed battery returned during a swap is the expected battery.
-- Unknown, disabled, replaced, or mismatched QR identifiers return explicit machine-readable errors.
-- QR identifiers can be disabled and replaced without changing the underlying resource ID.
+#### General rules for the API
 
-Before issuing an `AccessGrant` for a state-changing operation, validate authentication, reservation ownership, reservation state and time window, station match, physical-resource match, compatibility, and safety state. A valid grant is a transient response containing its rider, reservation, physical resource, purpose, issue time, and expiry time. It does not require an access-grant or QR-scan database table. A copied QR code must not bypass any validation.
+- Dynamic data must come from MySQL (and Station Service where specified).
+- Placeholder parameters in the URL are marked with a preceding colon (e.g. `:stationId`).
+- Property order in objects does not matter; array order matters where specified (e.g. nearest-first stations).
+- `Content-Type` of JSON responses is `application/json`.
+- Paths below are relative to `/api/v1`.
+- Unless marked public, endpoints require a valid Bearer token.
 
-### Battery telemetry and health
+---
 
-Accept raw telemetry readings from the mock feed and preserve both the received payload and validation result. Handle malformed, partial, late, and stale readings deterministically without corrupting valid history.
+#### Health
 
-Create append-only, versioned health assessments using the supplied seeded health records and the fixed table below.
+##### GET /health
 
-| Cycle count | Maximum charging temperature during the last cycle | Health band | Required action |
-| ----------- | -------------------------------------------------- | ----------- | --------------- |
-| `< 300` | `< 45 °C` | `HEALTHY` | Eligible for swap |
-| `300–600` | `< 45 °C` | `HEALTHY` | Eligible for swap |
-| `300–600` | `45–55 °C` | `WATCH` | Eligible; inspect on next return |
-| `> 600` and `≤ 900` | `≤ 55 °C` | `WATCH` | Eligible; inspect on next return |
-| any count `≤ 900` | `> 55 °C` | `QUARANTINE` | Withdraw immediately |
-| `> 900` | any temperature | `RETIRE` | Withdraw and schedule disposal |
+Public liveness probe. No authentication required.
 
-Apply rules in this deterministic order:
+**Response:** `200 OK`
 
-1. A telemetry `thermalAnomaly` flag first forces `QUARANTINE`.
-2. Otherwise a cycle count above 900 produces `RETIRE`.
-3. Otherwise apply the temperature/cycle-count rows.
+```json
+{
+  "status": "ok"
+}
+```
 
-A thermal anomaly must immediately quarantine the affected battery and automatically create an incident, even when ordinary classification would produce another band.
+#### Authentication
 
-Telemetry readings and health assessments must not be overwritten. Preserve effective dates so the health band valid at any historical service time can be reproduced. Batteries in `QUARANTINE`, `RETIRE`, or `UNKNOWN` health/lifecycle states, including batteries with stale telemetry, must never be offered as swap eligible.
+##### POST /auth/login
 
-### Swap reservations and confirmation
+Public. Verifies email + password against bcrypt `password_hash`. Returns the user’s opaque `api_token`.
 
-Implement the complete swap workflow. Expose reservation status so clients can display its current state and server-determined expiry. Failed access or confirmation must not partially change inventory.
+**Request example:**
 
-#### Swap workflow
+```json
+{
+  "email": "lin.xiaoyu@swaploop.test",
+  "password": "password123"
+}
+```
 
-1. Validate the authenticated rider, vehicle profile, requested station, voltage class, connector, and service compatibility.
-2. Select only eligible ready batteries and available swap bays at the requested station.
-3. During an active delivery-partner priority window, apply reserved-bay priority only to eligible riders belonging to that partner. Priority must never bypass compatibility, authorization, or safety rules.
-4. Atomically create one short-lived reservation. Two concurrent requests must never reserve the same bay or outgoing battery.
-5. Validate the scanned bay QR through a separate idempotent access operation and issue a short-lived access grant.
-6. Confirm the physical swap through a separate idempotent operation. An optional battery QR may validate the returned managed battery.
-7. Create exactly one swap transaction, release the reservation, assign the outgoing battery, move the returned battery to reassessment, and record the health band that was valid at the swap timestamp.
-8. Expire unused reservations safely and release their resources exactly once.
+**Response:** `200 OK`
 
-### Charging reservations and sessions
+```json
+{
+  "token": "sl_tok_rider-001"
+}
+```
 
-Support e-bikes with integrated batteries in compatible `BIKE_BAY` units. Validate battery mode, voltage class, connector, station state, unit state, and safety status before reservation. Removable batteries that are not compatible with SwapLoop are outside this pilot's scope.
+**Error responses (examples):** `401` (`UNAUTHORIZED`), `403` (`FORBIDDEN` for suspended), `422` (`VALIDATION_ERROR`).
 
-Implement the charging workflow as explicit transitions:
+---
 
-`reserved` → `charging` → `ready_for_collection` → `collected`
+##### POST /auth/register
 
-Also support terminal or exceptional states `expired` and `safety_cutoff`.
+Public. Creates a `RIDER` / `ACTIVE` account with a mode-driven vehicle profile and returns a new opaque token.
 
-Prevent overlapping reservations, double start, double collection, use of a faulted or blocked unit, and client-supplied transition timestamps. All eligibility and resulting timestamps are server determined.
+**Request example (swappable):**
 
-#### Charging workflow
+```json
+{
+  "email": "new.rider@swaploop.test",
+  "password": "password123",
+  "displayName": "New Rider",
+  "batteryMode": "SWAPPABLE",
+  "batteryType": "SL-48"
+}
+```
 
-1. Atomically create a time-bounded reservation for exactly one compatible unit.
-2. Validate the unit QR through a separate idempotent access operation and issue a short-lived access grant.
-3. Start charging only from `reserved`, using a dedicated idempotent operation.
-4. Calculate charging duration, readiness, collection deadline, and safety cutoffs using [`assets/handouts/handout-charging-rules.md`](./assets/handouts/handout-charging-rules.md).
-5. Mark the session `ready_for_collection` at the calculated time. A collection timeout leaves this state unchanged but prevents any new reservation for that unit.
-6. Collect only from `ready_for_collection`, using a dedicated idempotent operation, then release the unit.
-7. On a safety cutoff, move the session to `safety_cutoff`, create an incident, and block the charging unit pending inspection.
-8. Expire an unused charging reservation and release the unit safely.
+**Request example (integrated):**
 
-### Rider activity and receipts
+```json
+{
+  "email": "charge.rider@swaploop.test",
+  "password": "password123",
+  "displayName": "Charge Rider",
+  "batteryMode": "INTEGRATED",
+  "connectorType": "GB-AC-48"
+}
+```
 
-Provide an authenticated activity view combining the rider's swap and charging history. Each completed service must have a stable transaction or session ID and an accessible receipt containing the service type, time, station, resource, billing result, and currency.
+**Response:** `201 Created`
 
-### Accounts, plans, and billing
+```json
+{
+  "token": "sl_tok_rider-xxxxxxxx"
+}
+```
 
-Support the seeded pay-per-use, monthly-quota, and partner-fleet plans. Implement deterministic quota consumption and overage charges. Support plan-change preview, confirmed plan change, and cancellation.
+**Behaviour (summary):**
 
-Proration must use exact calendar days in the active billing period and round the final monetary values to the nearest whole yuan (`NEAREST_WHOLE_CNY`). A preview and its corresponding change must produce reproducible results at billing boundaries. Do not contact a payment provider.
+- `SWAPPABLE` requires `batteryType`; omit `connectorType`; assign an initial `current_battery_id` for the new rider.
+- `INTEGRATED` requires `connectorType`; omit `batteryType`; `current_battery_id` stays null.
+- Reject invalid mode/type combinations with `422`.
+- Duplicate email → `409`.
 
-### Incidents and safety inspections
+---
 
-Automatically create an incident when a thermal anomaly or charging-unit safety cutoff occurs. Immediately quarantine the affected battery or block the affected capacity. Riders may report safety concerns. Operators and authorized safety inspectors can list incidents, while only authorized inspectors can record inspection and resolution actions.
+#### Current rider
 
-Preserve the full incident lifecycle and history, including source, affected resources, detection time, severity, assignment, actions, resolution, resolver, and resolution time. Resolving an incident must not silently return an asset to service unless its safety state explicitly permits that transition.
+##### GET /me
 
-### Minimum routes
+Protected. Returns the authenticated public profile (no password or token). Includes derived `voltageClass`.
 
-Implement the operations defined in [`assets/api/swaploop-api.openapi.yaml`](./assets/api/swaploop-api.openapi.yaml). The required routes are summarized below. QR access, swap confirmation, charging start, and charging collection are separate operations in that contract and must remain so.
+**Response:** `200 OK`
 
-| Method | Path | Notes |
-| ------ | ---- | ----- |
-| `GET` | `/stations` | Station list with location and compatibility filters |
-| `GET` | `/stations/{stationId}` | Station detail |
-| `GET` | `/stations/{stationId}/availability` | Live availability |
-| `POST` | `/qr/resolve` | Resolve opaque QR payload |
-| `GET` | `/batteries/{batteryId}/health-history` | Append-only health assessments |
-| `POST` | `/telemetry/readings` | Accept mock telemetry readings |
-| `POST` | `/swap-reservations` | Create swap reservation |
-| `GET` | `/swap-reservations/{id}` | Reservation status |
-| `POST` | `/swap-reservations/{id}/access` | Idempotent bay access grant |
-| `POST` | `/swap-reservations/{id}/confirm` | Idempotent swap confirmation |
-| `POST` | `/charging-reservations` | Create charging reservation |
-| `GET` | `/charging-reservations/{id}` | Reservation / session status |
-| `POST` | `/charging-reservations/{id}/access` | Idempotent unit access grant |
-| `POST` | `/charging-reservations/{id}/start` | Idempotent start charging |
-| `POST` | `/charging-reservations/{id}/collect` | Idempotent collection |
-| `GET` | `/me/activity` | Authenticated rider activity |
-| `GET` | `/transactions/{id}/receipt` | Service receipt |
-| `GET` | `/subscriptions/{id}/usage` | Plan usage |
-| `POST` | `/subscriptions/{id}/preview-change` | Plan-change preview |
-| `POST` | `/subscriptions/{id}/change` | Confirm plan change |
-| `POST` | `/subscriptions/{id}/cancel` | Cancel subscription |
-| `GET` | `/incidents` | List incidents (authorized roles) |
-| `POST` | `/incidents` | Report incident |
-| `POST` | `/incidents/{id}/resolve` | Resolve incident (inspectors) |
-| `POST` | `/reset` | Restore canonical seed (assessor-protected) |
+```json
+{
+  "id": "rider-001",
+  "email": "lin.xiaoyu@swaploop.test",
+  "displayName": "Lin Xiaoyu",
+  "role": "RIDER",
+  "status": "ACTIVE",
+  "batteryMode": "SWAPPABLE",
+  "batteryType": "SL-48",
+  "connectorType": null,
+  "voltageClass": "48V",
+  "currentBatteryId": "battery-101",
+  "partnerId": null
+}
+```
+
+**Error responses (examples):** `401` (`UNAUTHORIZED`), `403` (`FORBIDDEN`).
+
+---
+
+##### PATCH /me
+
+Protected. Partial update of `displayName` and/or vehicle profile (same validation rules as register).
+
+**Response:** `200 OK` — updated public user object.
+
+**Error responses (examples):** `422` (`VALIDATION_ERROR`), `401`, `403`.
+
+---
+
+##### GET /me/activity
+
+Protected. Returns the rider’s Activity snapshot for the SPA:
+
+- **`active`** — the current in-progress service, or `null` if none. Active means non-terminal states (`RESERVED`, `STARTED`, `CHARGING`, `READY_FOR_COLLECTION`). If the only candidate is `RESERVED` with `expiresAt` ≤ now, expire it first (service → `EXPIRED`; `SWAP_BAY`: `RESERVED` → `READY`; `BIKE_BAY`: `RESERVED` → `AVAILABLE`) and return `"active": null`.
+- **`recent`** — up to **5** of the rider’s services in a **terminal** state (`CONFIRMED`, `COLLECTED`, `EXPIRED`, `CANCELLED`, `SAFETY_CUTOFF`), newest first (order by `completedAt`, then `expiresAt`, then `createdAt`). This is a count limit, not a time window.
+
+**Response:** `200 OK`
+
+```json
+{
+  "active": {
+    "id": "service-ab12cd34",
+    "type": "SWAP",
+    "riderId": "rider-001",
+    "stationId": "station-001",
+    "unitId": "unit-001",
+    "state": "RESERVED",
+    "batteryOutId": "battery-001",
+    "batteryInId": null,
+    "priceYuan": null,
+    "priceCode": null,
+    "partnerPriorityApplied": false,
+    "createdAt": "2026-08-15T12:00:00.000+08:00",
+    "expiresAt": "2026-08-15T12:00:10.000+08:00",
+    "startedAt": null,
+    "completedAt": null,
+    "timestamp": "2026-08-15T12:00:00.000+08:00"
+  },
+  "recent": [
+    {
+      "id": "service-9f81e2c0",
+      "type": "SWAP",
+      "riderId": "rider-001",
+      "stationId": "station-002",
+      "unitId": "unit-008",
+      "state": "CONFIRMED",
+      "batteryOutId": "battery-010",
+      "batteryInId": "battery-101",
+      "priceYuan": 5,
+      "priceCode": "SWAP_SL-48",
+      "partnerPriorityApplied": false,
+      "createdAt": "2026-08-14T18:00:00.000+08:00",
+      "expiresAt": "2026-08-14T18:00:10.000+08:00",
+      "startedAt": "2026-08-14T18:00:02.000+08:00",
+      "completedAt": "2026-08-14T18:00:05.000+08:00",
+      "timestamp": "2026-08-14T18:00:05.000+08:00"
+    }
+  ]
+}
+```
+
+When there is no active service and no history, return `"active": null` and `"recent": []`. Finished services include snapshotted `priceYuan` / `priceCode` when priced.
+
+---
+
+#### Stations
+
+##### GET /stations
+
+Public. Optional bearer token adds per-station `riderAvailability`.
+
+**Query parameters:**
+
+| Param           | Notes                                                                               |
+| --------------- | ----------------------------------------------------------------------------------- |
+| `lat`, `lng`    | Nearby filter (both required together). Adds `distanceMeters`, sorts nearest-first. |
+| `radiusMeters`  | Optional; default `1500` when lat/lng present                                       |
+| `type`          | `SWAP` \| `CHARGING` \| `HYBRID`                                                    |
+| `service`       | `SWAP` \| `BIKE_BAY` — compatibility / availability filter                          |
+| `batteryType`   | With `service=SWAP`: `SL-48` \| `SL-60`                                             |
+| `connectorType` | With `service=BIKE_BAY`: `GB-AC-48` \| `GB-AC-60`                                   |
+
+Suspended stations remain discoverable in unfiltered lists but must not offer reservable capacity when `service` filters are applied.
+
+**Response:** `200 OK`
+
+```json
+{
+  "stations": [
+    {
+      "id": "station-001",
+      "name": "Haitang Garden East Gate",
+      "type": "HYBRID",
+      "lifecycleState": "ACTIVE",
+      "latitude": 31.2308,
+      "longitude": 121.4717,
+      "address": "88 Haitang Community Road",
+      "compatibility": {
+        "services": ["SWAP", "BIKE_BAY"],
+        "batteryTypes": ["SL-48", "SL-60"],
+        "connectorTypes": ["GB-AC-48"],
+        "voltageClasses": ["48V", "60V"]
+      }
+    }
+  ]
+}
+```
+
+With bearer token, each station may also include:
+
+```json
+"riderAvailability": {
+  "compatibleReadyBattery": true,
+  "compatibleChargingBay": false
+}
+```
+
+---
+
+##### GET /stations/:stationId
+
+Public. Station detail with compatibility. Optional bearer adds `riderAvailability`.
+
+**Response:** `200 OK` — station object as above (single resource, not wrapped in `stations`).
+
+**Error responses (examples):** `404` (`NOT_FOUND`).
+
+---
+
+#### Services
+
+##### POST /services
+
+Protected. Creates a **10-second** `RESERVED` hold so expiry can be tested during marking. A real-world deployment would use a much longer hold (typically **15–30 minutes**); implement the competition duration of **10 seconds**.
+
+**Behaviour (summary):**
+
+- `SWAP`: rider must be `SWAPPABLE` with `batteryType`. Atomically reserve one READY matching `SWAP_BAY`. Before accepting a pack, evaluate last-charge telemetry; quarantine/skip unsafe or `NO_TELEMETRY` packs and try the next candidate.
+- `CHARGING`: rider must be `INTEGRATED` with `connectorType`. Atomically reserve one AVAILABLE matching `BIKE_BAY`.
+- One active service per rider. Before enforcing that rule, expire any of the rider’s overdue `RESERVED` holds (`expiresAt` ≤ now → service `EXPIRED`; `SWAP_BAY`: `RESERVED` → `READY`; `BIKE_BAY`: `RESERVED` → `AVAILABLE`) so a timed-out hold does not block a new create.
+- Set `expiresAt` to **now + 10 seconds** on the created service. (Later actions such as `POST /services/:serviceId/start` check `expiresAt`.)
+
+**Request example:**
+
+```json
+{
+  "type": "SWAP",
+  "stationId": "station-001"
+}
+```
+
+**Response:** `201 Created` — Service object, for example:
+
+```json
+{
+  "id": "service-ab12cd34",
+  "type": "SWAP",
+  "riderId": "rider-001",
+  "stationId": "station-001",
+  "unitId": "unit-001",
+  "state": "RESERVED",
+  "batteryOutId": "battery-001",
+  "batteryInId": null,
+  "priceYuan": null,
+  "priceCode": null,
+  "createdAt": "2026-08-15T12:00:00.000+08:00",
+  "expiresAt": "2026-08-15T12:00:10.000+08:00",
+  "startedAt": null,
+  "completedAt": null
+}
+```
+
+**Error responses (examples):** `422` (wrong vehicle profile), `409` (no capacity / active service / all packs unsafe), `401`, `403`.
+
+---
+
+##### GET /services/:serviceId
+
+Protected. Owner only may read the service.
+
+**Response:** `200 OK` — Service object.
+
+**Error responses (examples):** `404`, `403`, `401`.
+
+---
+
+##### POST /services/:serviceId/start
+
+Protected. Owner only.
+
+- If the service is still `RESERVED` and `expiresAt` ≤ now: set the service to `EXPIRED`, return the unit (in the `station_units` table: `SWAP_BAY`: `RESERVED` → `READY`; `BIKE_BAY`: `RESERVED` → `AVAILABLE`), and return `409` (hold expired). Do not start an overdue hold.
+- **SWAP:** `RESERVED` → `STARTED` (simulated locker open). If the service is already `STARTED`, return it unchanged with `200` (do not fail and do not start again).
+- **CHARGING:** call Station Service `POST {STATION_SERVICE}/api/bike-bays/{unitId}/charging/sessions` using the service’s reserved `unitId`. On success, set the service `RESERVED` → `CHARGING` and record `startedAt`. If Station Service fails (network error, non-success status, or cannot create the session), leave the service `RESERVED`, do not change the bay, and return `502` or `409` as appropriate. If the service is already `CHARGING`, return it unchanged with `200` (do not start a second Station Service session).
+
+**Response:** `200 OK` — updated Service.
+
+**Error responses (examples):** `409` (expired hold or invalid state), `403`, `401`, `404`.
+
+---
+
+##### GET /services/:serviceId/charging-status
+
+Protected. Owner only. For `CHARGING` services. This is the endpoint that exposes live bike-bay charging telemetry to the SPA. Poll about once per second while the service is `CHARGING`.
+
+**Behaviour (summary):**
+
+- Call Station Service `GET {STATION_SERVICE}/api/bike-bays/{unitId}/charging/sessions/current` using the service’s `unitId`.
+- Return `{ service, charging }` where `charging` includes at least `status` (`CHARGING` \| `COMPLETED`), `startedAt`, `endsAt`, and `samples` (`socPercent`, `chargingPowerKw`, `temperature`) from Station Service.
+- When Station Service reports `COMPLETED` and the service is still `CHARGING`, auto-transition the service (and unit) to `READY_FOR_COLLECTION` before responding.
+
+**Response:** `200 OK`
+
+```json
+{
+  "service": {
+    "id": "service-ab12cd34",
+    "type": "CHARGING",
+    "state": "CHARGING"
+  },
+  "charging": {
+    "status": "CHARGING",
+    "startedAt": "2026-08-15T12:01:00.000+08:00",
+    "endsAt": "2026-08-15T12:01:15.000+08:00",
+    "samples": [
+      {
+        "socPercent": 42,
+        "chargingPowerKw": 1.2,
+        "temperature": 31.5
+      }
+    ]
+  }
+}
+```
+
+**Error responses (examples):** `409` (service not in a charging lifecycle state), `403`, `401`, `404`, `502` (Station Service unavailable).
+
+---
+
+##### POST /services/:serviceId/confirm
+
+Protected. Owner only. Swap only: `STARTED` → `CONFIRMED`.
+
+**Behaviour (summary):**
+
+- Inventory exchange: bay goes `CHARGING` holding the rider’s previous pack (`batteryInId`); rider `currentBatteryId` becomes `batteryOutId`.
+- Snapshot PAYG `priceYuan` / `priceCode` from `price_list` (e.g. SL-48 → `5` / `SWAP_SL-48`).
+- Confirm from `RESERVED` alone must fail (`409`).
+
+**Response:** `200 OK` — Service with `state` `CONFIRMED`, `completedAt`, prices set.
+
+---
+
+##### POST /services/:serviceId/collect
+
+Protected. Owner only. Charging: `READY_FOR_COLLECTION` → `COLLECTED`. Snapshot PAYG price; best-effort clear Station Service session; release bay to `AVAILABLE`.
+
+**Response:** `200 OK` — Service with `state` `COLLECTED` and prices set (e.g. GB-AC-48 → `3` / `CHARGE_GB-AC-48`).
+
+---
+
+##### POST /services/:serviceId/cancel
+
+Protected. Owner only.
+
+- If the service is still `RESERVED` and `expiresAt` ≤ now: set the service to `EXPIRED`, return the unit (`SWAP_BAY`: `RESERVED` → `READY`; `BIKE_BAY`: `RESERVED` → `AVAILABLE`), and return `409` (already expired — nothing left to cancel).
+- Swap: cancel from `RESERVED` or `STARTED` (no inventory exchange).
+- Charging: cancel only from `RESERVED`.
+
+**Response:** `200 OK` — Service with `state` `CANCELLED` and `completedAt`.
+
+**Error responses (examples):** `409` (expired hold or invalid state), `403`, `401`, `404`.
+
+---
+
+#### Price list
+
+##### GET /price-list
+
+Public catalog of active PAYG rates. Receipts still use snapshotted service fields at finish.
+
+**Response:** `200 OK`
+
+```json
+{
+  "currency": "CNY",
+  "items": [
+    {
+      "priceCode": "SWAP_SL-48",
+      "serviceType": "SWAP",
+      "batteryType": "SL-48",
+      "connectorType": null,
+      "amountYuan": 5
+    },
+    {
+      "priceCode": "SWAP_SL-60",
+      "serviceType": "SWAP",
+      "batteryType": "SL-60",
+      "connectorType": null,
+      "amountYuan": 7
+    },
+    {
+      "priceCode": "CHARGE_GB-AC-48",
+      "serviceType": "CHARGING",
+      "batteryType": null,
+      "connectorType": "GB-AC-48",
+      "amountYuan": 3
+    },
+    {
+      "priceCode": "CHARGE_GB-AC-60",
+      "serviceType": "CHARGING",
+      "batteryType": null,
+      "connectorType": "GB-AC-60",
+      "amountYuan": 4
+    }
+  ]
+}
+```
+
+---
+
+#### Batteries (safety helper)
+
+##### POST /batteries/:batteryId/evaluate-last-charge
+
+Protected optional helper for debugging. Fetches Station Service last-charge telemetry and returns the Main Backend evaluation outcome (`SAFE`, `QUARANTINED` with reason, or telemetry errors). Swap reservation must still enforce the same rules inline.
+
+**Response:** `200 OK` example:
+
+```json
+{
+  "batteryId": "battery-001",
+  "outcome": "SAFE",
+  "unitId": "unit-001"
+}
+```
+
+**Error responses (examples):** `404` (`NO_TELEMETRY` / not found).
+
+---
 
 ## Assessment
 
-The solution will be assessed through automated HTTP tests (including the provided Bruno suite) against the OpenAPI contract, concurrent-request tests, database inspection, and expert review. Assessment will focus on observable API behaviour rather than the chosen framework.
+Module C will be assessed using automated HTTP tools (including the provided Bruno suite) against the competitor Main Backend. The following aspects will be evaluated:
 
-At minimum, tests will verify that:
-
-- concurrent requests cannot reserve the same swap bay, outgoing battery, or charging unit
-- replaying an operation with the same idempotency key creates exactly one result
-- thermal anomalies override ordinary health classification and quarantine the battery
-- stale or unknown-health batteries are excluded from swap availability
-- only integrated-battery profiles can reserve bike charging bays; incompatible removable batteries are rejected as out of scope
-- partner priority is scoped correctly and never bypasses safety
-- QR scans cannot bypass authentication, ownership, expiry, compatibility, or resource matching
-- a charging safety cutoff creates an incident and blocks the unit
-- billing calculations are deterministic
-- reset restores the supplied scenarios
-- common errors use the documented status and machine-readable error shape
+- **Endpoint correctness:** responses match the specified structure, HTTP status codes, and JSON field names in the OpenAPI contract
+- **Error handling:** correct status codes and error codes for defined scenarios (`401`, `403`, `404`, `409`, `422`, `502` where applicable)
+- **Authentication:** opaque bearer tokens; suspended accounts rejected
+- **Atomic holds:** concurrent requests cannot reserve the same bay or pack
+- **Swap safety:** spike / sustained / `NO_TELEMETRY` packs are not reserved; seeded fixtures behave as specified
+- **Swap lifecycle:** start → confirm inventory exchange; cancel rules; confirm-without-start rejected
+- **Charging lifecycle:** fail-closed start; live `/charging-status` telemetry proxy + auto ready; collect + price snapshot
+- **PAYG:** confirm/collect snapshot correct `priceYuan` / `priceCode`; `GET /price-list` returns the catalog
+- **Reset:** `POST /reset` restores seed data
+- **API documentation compliance:** endpoints adhere to [`assets/api/main-backend.openapi.yaml`](./assets/api/main-backend.openapi.yaml)
 
 ## Mark distribution
 
-The following is a draft distribution. Final criterion-level points must be defined in `marking/marking-scheme.json`.
-
 | WSOS SECTION | Description                            | Points |
-| ------------ | -------------------------------------- | -----: |
-| 1            | Work organization and self-management  |      5 |
-| 2            | Communication and interpersonal skills |      5 |
-| 5            | Back-End Development                   |     90 |
-| **Total**    |                                        | **100** |
+| ------------ | -------------------------------------- | ------ |
+| 1            | Work organization and self-management  | 1      |
+| 2            | Communication and interpersonal skills | 2      |
+| 3            | Design Implementation                  | 0      |
+| 4            | Front-End Development                  | 0      |
+| 5            | Back-End Development                   | 27     |
+| **Total**    |                                        | 30     |
+
+Final criterion-level marks live in [`marking/marking-scheme.json`](./marking/marking-scheme.json) (updated in a separate process).

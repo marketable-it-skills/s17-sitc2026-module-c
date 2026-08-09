@@ -86,22 +86,15 @@ export class SwapLoopQrEmulator extends HTMLElement {
 
   async #fetchCurrentQr(controller) {
     if (!this.#scanning) return;
+    const scanStartedAt = Date.now();
 
     try {
-      let response;
-      let requestError;
+      const response = await fetch(`${this.serviceUrl}/api/qr/current`, {
+        headers: { Accept: "application/json" },
+        signal: controller.signal
+      });
 
-      await Promise.all([
-        fetch(`${this.serviceUrl}/api/qr/current`, {
-          headers: { Accept: "application/json" },
-          signal: controller.signal
-        })
-          .then((result) => { response = result; })
-          .catch((error) => { requestError = error; }),
-        this.#waitForScanEffect(controller.signal)
-      ]);
-
-      if (requestError) throw requestError;
+      if (!this.#scanning) return;
 
       if (response.status === 404) {
         this.#scanning = false;
@@ -124,6 +117,18 @@ export class SwapLoopQrEmulator extends HTMLElement {
         color: { dark: "#102a2a", light: "#ffffff" },
         errorCorrectionLevel: "M"
       });
+
+      if (!this.#scanning) return;
+
+      // Show the live QR under the scan line while the camera-jitter effect runs.
+      this.#render();
+
+      const elapsed = Date.now() - scanStartedAt;
+      const remaining = Math.max(0, this.scanDuration - elapsed);
+      await this.#waitForScanEffect(controller.signal, remaining);
+
+      if (!this.#scanning) return;
+
       this.#scanning = false;
       this.#updateState("success", "QR code scanned successfully.");
 
@@ -149,14 +154,14 @@ export class SwapLoopQrEmulator extends HTMLElement {
     }
   }
 
-  #waitForScanEffect(signal) {
+  #waitForScanEffect(signal, duration = this.scanDuration) {
     return new Promise((resolve) => {
       const finish = () => {
         window.clearTimeout(timer);
         signal.removeEventListener("abort", finish);
         resolve();
       };
-      const timer = window.setTimeout(finish, this.scanDuration);
+      const timer = window.setTimeout(finish, duration);
       signal.addEventListener("abort", finish, { once: true });
     });
   }
@@ -179,6 +184,7 @@ export class SwapLoopQrEmulator extends HTMLElement {
 
   #render() {
     const isActive = this.#state === "scanning";
+    const showLiveQr = Boolean(this.#qrImage) && isActive;
     const statusLabel = {
       idle: "Ready",
       scanning: "Scanning",
@@ -289,6 +295,7 @@ export class SwapLoopQrEmulator extends HTMLElement {
 
         .corner {
           position: absolute;
+          z-index: 3;
           width: 42px;
           height: 42px;
           border-color: #73e1cc;
@@ -301,7 +308,7 @@ export class SwapLoopQrEmulator extends HTMLElement {
 
         .scan-line {
           position: absolute;
-          z-index: 2;
+          z-index: 4;
           top: 18px;
           right: 13px;
           left: 13px;
@@ -332,6 +339,12 @@ export class SwapLoopQrEmulator extends HTMLElement {
           box-shadow: 0 16px 35px rgba(0,0,0,.28);
         }
 
+        .qr--live {
+          opacity: 0.94;
+          filter: contrast(0.96) brightness(0.98);
+          animation: camera-jitter 1.35s ease-in-out infinite;
+        }
+
         @keyframes scan {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(192px); }
@@ -340,6 +353,16 @@ export class SwapLoopQrEmulator extends HTMLElement {
         @keyframes pulse {
           0%, 100% { opacity: .45; transform: scale(.85); }
           50% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Slight handheld-camera drift while the QR is being "acquired". */
+        @keyframes camera-jitter {
+          0%   { transform: translate(0px, 0px) rotate(0deg) scale(0.985); }
+          18%  { transform: translate(5px, -4px) rotate(0.55deg) scale(1.01); }
+          36%  { transform: translate(-4px, 3px) rotate(-0.45deg) scale(0.99); }
+          54%  { transform: translate(3px, 5px) rotate(0.35deg) scale(1.015); }
+          72%  { transform: translate(-5px, -2px) rotate(-0.6deg) scale(0.995); }
+          100% { transform: translate(0px, 0px) rotate(0deg) scale(0.985); }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -368,7 +391,7 @@ export class SwapLoopQrEmulator extends HTMLElement {
               <span class="corner bl"></span><span class="corner br"></span>
               <span class="scan-line"></span>
               ${this.#qrImage
-                ? `<img class="qr" src="${this.#qrImage}" alt="Simulated QR code" />`
+                ? `<img class="qr${showLiveQr ? " qr--live" : ""}" src="${this.#qrImage}" alt="Simulated QR code" />`
                 : `<div class="placeholder">
                     <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
                       <path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M7 7h3v3H7zM14 7h3v3h-3zM7 14h3v3H7zM14 14h1v1h-1zM17 14v3h-3"/>

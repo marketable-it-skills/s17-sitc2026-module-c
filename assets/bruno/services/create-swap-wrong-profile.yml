@@ -1,0 +1,36 @@
+info:
+  name: create-swap-wrong-profile
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-002
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "SWAP",
+        "stationId": "station-001"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("A3.3: INTEGRATED rider cannot create swap service", function() {
+          expect(res.status).to.equal(422);
+          expect(res.body.code).to.equal("VALIDATION_ERROR");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

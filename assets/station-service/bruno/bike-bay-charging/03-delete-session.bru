@@ -1,0 +1,17 @@
+meta {
+  name: 03 Delete bike-bay charging session
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}/api/bike-bays/{{bikeBayUnitId}}/charging/sessions/current
+  body: none
+  auth: none
+}
+
+tests {
+  test("clears session", function () {
+    expect(res.status).to.equal(204);
+  });
+}

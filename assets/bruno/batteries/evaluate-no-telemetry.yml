@@ -1,0 +1,30 @@
+info:
+  name: evaluate-no-telemetry
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{baseUrl}}/batteries/battery-002/evaluate-last-charge"
+  headers:
+    - name: Authorization
+      value: "Bearer sl_tok_rider-001"
+  body:
+    type: json
+    data: ""
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("evaluate battery-002 returns NO_TELEMETRY", function() {
+          expect(res.status).to.equal(404);
+          expect(res.body.code).to.equal("NO_TELEMETRY");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,25 @@
+meta {
+  name: 02 Get current bike-bay charging session
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/bike-bays/{{bikeBayUnitId}}/charging/sessions/current
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns live session", function () {
+    expect(res.status).to.equal(200);
+    expect(["CHARGING", "COMPLETED"]).to.include(res.body.status);
+    expect(res.body.samples).to.be.an("array");
+    if (res.body.samples.length > 0) {
+      const sample = res.body.samples[res.body.samples.length - 1];
+      expect(sample).to.have.property("socPercent");
+      expect(sample).to.have.property("chargingPowerKw");
+      expect(sample).to.have.property("temperature");
+    }
+  });
+}

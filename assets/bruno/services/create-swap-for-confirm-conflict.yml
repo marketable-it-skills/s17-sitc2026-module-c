@@ -1,0 +1,36 @@
+info:
+  name: create-swap-for-confirm-conflict
+  type: http
+  seq: 13
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-001
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "SWAP",
+        "stationId": "station-001"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("create reserved swap for confirm-without-start", function() {
+          expect(res.status).to.equal(201);
+          bru.setVar("swapReservedServiceId", res.body.id);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
