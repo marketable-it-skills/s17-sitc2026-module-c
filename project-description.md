@@ -10,7 +10,7 @@ Competitors will have **3 hours** to complete this module.
 
 In **Module C**, competitors build a **working prototype** of the **Main Backend**—a deterministic REST API consumed by the Module D SPA. Business rules for eligibility, reservation integrity, last-charge quarantine, live charging simulation orchestration, and pay-as-you-go price snapshots are implemented here.
 
-In the overall structure, there is a **Station Service**: a separate technical edge service that stands in for station / cabinet hardware and telemetry. **Station Service** simulates last completed charging-event telemetry for swappable battery packs, and simulated e-bike charging sessions. It is provided for this module. Station Service APIs are **unprotected** (no authentication) and the **Main Backend** is the only application that should call it. (In the intended final setup it is reachable from the Main Backend over a secure private network link, so public clients never see it.) In the competition environment you call the provided Station Service URL from your Main Backend the same way.
+In the overall structure, there is a **Station Service**: a separate technical edge service that stands in for station / cabinet hardware and telemetry. **Station Service** simulates last completed charging-event telemetry for swappable battery packs, and simulated e-bike charging sessions. It is provided for this module. Station Service APIs are **unprotected** (no authentication) and the **Main Backend** is the only application that should call it. (In the intended final setup it is reachable from the Main Backend over a secure private network link, so public clients never see it.)
 
 ![SwapLoop Infrastructure](./assets/images/swaploop-infra.png)
 
@@ -40,6 +40,17 @@ Build the API with a server-side language and framework available in the competi
 
 All Main Backend API paths in this document are relative to `/api/v1` on whatever host you run (for example `POST /auth/login` means `POST {baseUrl}/api/v1/auth/login`). Use your local development URL while building; during assessment, the deployed Main Backend is available at `https://cXX-YYYY-module-c.sitc.skillsit.eu` (replace `cXX` / `YYYY` with your competition username and PIN).
 
+### Vehicle profiles and compatibility
+
+Currently, there are only two supported swappable battery types and two supported integrated connector types for e-bikes with integrated batteries.
+
+| `batteryMode` | Battery / Connector Types |
+| ------------- | ------------------------- |
+| `SWAPPABLE`   | `SL-48` \| `SL-60`        |
+| `INTEGRATED`  | `GB-AC-48` \| `GB-AC-60`  |
+
+`voltageClass` (`48V` / `60V`) is **derived** from the chosen type; it is not a separate stored column.
+
 ### Authentication and authorization
 
 The Main Backend uses **opaque** bearer tokens. Store each token in the `api_token` column of the `users` table (no sessions table, no JWT).
@@ -65,25 +76,6 @@ Example:
 ```http
 Authorization: Bearer sl_tok_rider-001
 ```
-
-### Vehicle profiles and compatibility
-
-Vehicle profile is **mode-driven**:
-
-| `batteryMode` | Required field                           | Forbidden / null | Notes                                       |
-| ------------- | ---------------------------------------- | ---------------- | ------------------------------------------- |
-| `SWAPPABLE`   | `batteryType` `SL-48` \| `SL-60`         | `connectorType`  | Track `currentBatteryId` (pack on the bike) |
-| `INTEGRATED`  | `connectorType` `GB-AC-48` \| `GB-AC-60` | `batteryType`    | `currentBatteryId` is null                  |
-
-`voltageClass` (`48V` / `60V`) is **derived** in `/me` responses from the chosen type; it is not a separate stored column.
-
-Physical vocabulary:
-
-| Term                    | Meaning                                                                 |
-| ----------------------- | ----------------------------------------------------------------------- |
-| **SwapLoop Station**    | Full service location (`SWAP`, `CHARGING`, or `HYBRID`)                 |
-| **Battery Slot**        | One compartment that holds at most one battery (API unit `SWAP_BAY`)    |
-| **E-bike Charging Bay** | Bay that charges a whole e-bike with an integrated battery (`BIKE_BAY`) |
 
 ### Unified services (swap and charging)
 
