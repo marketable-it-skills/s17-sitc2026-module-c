@@ -6,11 +6,13 @@ Competitors will have **3 hours** to complete this module.
 
 ## Introduction
 
-SwapLoop is a fictional Shanghai community pilot that offers safer alternatives to charging e-bike batteries indoors. Riders exchange compatible removable batteries at swap stations, or charge e-bikes with integrated batteries in monitored **E-bike Charging Bays**. Some stations offer only one service; **hybrid** stations offer both.
+**SwapLoop** is a fictional Shanghai community pilot offering safer alternatives to charging e-bike batteries indoors. **SwapLoop Stations** across the city let riders exchange compatible removable batteries from a **battery slot**, or charge e-bikes with integrated batteries in a monitored **e-bike charging bay**. Some stations offer only battery slots (`SWAP`) or charging bays (`CHARGING`); **hybrid** stations (`HYBRID`) offer both.
 
-This competition builds **working prototypes**, not a finished production platform. **Module C** is the **Main Backend**: a deterministic REST API under `/api/v1` that Modules D SPA consume. Business rules for eligibility, reservation integrity, last-charge quarantine, live charging simulation orchestration, and pay-as-you-go price snapshots belong here.
+In **Module C**, competitors build a **working prototype** of the **Main Backend**—a deterministic REST API consumed by the Module D SPA. Business rules for eligibility, reservation integrity, last-charge quarantine, live charging simulation orchestration, and pay-as-you-go price snapshots are implemented here.
 
-In the overall structure, the **Station Service** is a separate technical edge service that stands in for station / cabinet hardware and telemetry. **Station Service** simulates last completed charging-event telemetry for swappable battery packs, and simulated e-bike charging sessions. It is provided for this module. Station Service APIs are **unprotected** (no authentication) and the **Main Backend** is the only application that should call it. (In the intended final setup it is reachable from the Main Backend over a secure private network link, so public clients never see it.) In the competition environment you call the provided Station Service URL from your Main Backend the same way.
+In the overall structure, there is a **Station Service**: a separate technical edge service that stands in for station / cabinet hardware and telemetry. **Station Service** simulates last completed charging-event telemetry for swappable battery packs, and simulated e-bike charging sessions. It is provided for this module. Station Service APIs are **unprotected** (no authentication) and the **Main Backend** is the only application that should call it. (In the intended final setup it is reachable from the Main Backend over a secure private network link, so public clients never see it.) In the competition environment you call the provided Station Service URL from your Main Backend the same way.
+
+![SwapLoop Infrastructure](./assets/images/swaploop-infra.png)
 
 Real payments, physical lock control, IoT devices, QR scanning / deep-link handling (Module D), monthly subscriptions, and fleet settlement are **out of scope**.
 
