@@ -1,0 +1,36 @@
+meta {
+  name: 02 Get spike charging telemetry
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/batteries/{{batterySpikeId}}/last-charging-telemetry
+  body: none
+  auth: none
+}
+
+docs {
+  Seeded spike case: one sample temperature is 62.7 C (Rule 1 for Module C).
+}
+
+tests {
+  test("returns 200 for the spike battery", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.batteryId).to.equal(bru.getEnvVar("batterySpikeId"));
+    expect(res.body.telemetryData).to.be.an("array");
+    expect(res.body.telemetryData.length).to.be.above(100);
+  });
+
+  test("includes a sample above 55 C", function () {
+    const maxTemp = Math.max(
+      ...res.body.telemetryData.map((sample) => sample.temperature)
+    );
+    expect(maxTemp).to.equal(62.7);
+  });
+
+  test("does not include derived fields", function () {
+    expect(res.body).to.not.have.property("maxTemperature");
+    expect(res.body).to.not.have.property("anomalyFlag");
+  });
+}

@@ -1,0 +1,25 @@
+meta {
+  name: 01 Reset Module C database
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/reset
+  body: none
+  auth: none
+}
+
+docs {
+  Restores Module C canonical MySQL seed from db/swaploop_db.sql.
+}
+
+tests {
+  test("returns ok status after reset", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body).to.deep.equal({
+      status: "ok"
+    });
+  });
+}
+

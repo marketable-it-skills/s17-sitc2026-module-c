@@ -1,5 +1,0 @@
-name: swaploop-module-c-local
-variables:
-  - name: baseUrl
-    value: http://localhost:5000/api/v1
-    description: ""

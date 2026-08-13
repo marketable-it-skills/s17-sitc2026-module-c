@@ -1,0 +1,22 @@
+meta {
+  name: 04 Reject unknown battery
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/batteries/{{batteryUnknownId}}/last-charging-telemetry
+  body: none
+  auth: none
+}
+
+docs {
+  Unknown batteryId returns 404 NOT_FOUND.
+}
+
+tests {
+  test("returns 404 NOT_FOUND", function () {
+    expect(res.status).to.equal(404);
+    expect(res.body.code).to.equal("NOT_FOUND");
+  });
+}

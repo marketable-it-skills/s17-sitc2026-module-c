@@ -1,0 +1,11 @@
+name: swaploop-module-c-local
+variables:
+  - name: baseUrl
+    value: http://localhost:5000/api/v1
+    description: ""
+  - name: baseUrlDev
+    value: http://localhost:5000/api/v1
+    description: ""
+  - name: baseUrlDeployment
+    value: https://c10-7510-module-c-solution.sitc.skillsit.eu/api/v1
+    description: ""

@@ -1,0 +1,27 @@
+meta {
+  name: 04 Select disabled QR for simulation
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/qr/current
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "qrId": "qr-004"
+  }
+}
+
+tests {
+  test("allows a disabled QR code to be simulated", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.qrId).to.equal("qr-004");
+    expect(res.body.payload).to.equal(
+      "https://app.swaploop.test/stations/station-004"
+    );
+  });
+}

@@ -1,0 +1,29 @@
+meta {
+  name: 01 Start bike-bay charging session
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/bike-bays/{{bikeBayUnitId}}/charging/sessions
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "serviceId": "service-demo-001",
+    "durationSeconds": 15
+  }
+}
+
+tests {
+  test("starts session with CHARGING status", function () {
+    expect(res.status).to.equal(201);
+    expect(res.body.unitId).to.equal(bru.getEnvVar("bikeBayUnitId"));
+    expect(res.body.status).to.equal("CHARGING");
+    expect(res.body.startedAt).to.be.a("string");
+    expect(res.body.endsAt).to.be.a("string");
+    expect(res.body.samples).to.be.an("array");
+  });
+}

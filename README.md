@@ -15,7 +15,10 @@ The task was modularized and standardized for the Erasmus+ **"Marketable IT Skil
 ## Content
 
 - [Project Description](project-description.md)
-- [OpenAPI Contract](assets/api/main-backend.openapi.yaml)
+- [OpenAPI Contract (Main Backend)](assets/api/main-backend.openapi.yaml)
+- [Main Backend Swagger UI](assets/api/main-backend-docs/index.html)
+- [OpenAPI Contract (Station Service)](assets/api/station-service-openapi.yaml)
+- [Station Service Swagger UI](assets/api/station-service-docs/index.html)
 - [MySQL seed](assets/db/swaploop_db.sql)
 - [Authentication & test identities](assets/handouts/handout-authentication-and-test-identities.md)
 - [Last-charge safety](assets/handouts/handout-last-charge-safety.md)

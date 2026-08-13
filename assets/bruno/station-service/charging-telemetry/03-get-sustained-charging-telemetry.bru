@@ -1,0 +1,61 @@
+meta {
+  name: 03 Get sustained charging telemetry
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/batteries/{{batterySustainedId}}/last-charging-telemetry
+  body: none
+  auth: none
+}
+
+docs {
+  Seeded sustained-heat case: no sample above 55 C, but a contiguous span of at least 5 minutes averages above 50 C (Rule 2 for Module C).
+}
+
+tests {
+  test("returns 200 for the sustained battery", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.batteryId).to.equal(bru.getEnvVar("batterySustainedId"));
+    expect(res.body.telemetryData).to.be.an("array");
+    expect(res.body.telemetryData.length).to.be.above(100);
+  });
+
+  test("has no spike above 55 C", function () {
+    const maxTemp = Math.max(
+      ...res.body.telemetryData.map((sample) => sample.temperature)
+    );
+    expect(maxTemp).to.be.at.most(55);
+  });
+
+  test("has a contiguous 5-minute mean above 50 C", function () {
+    const samples = res.body.telemetryData;
+    let found = false;
+
+    for (let i = 0; i < samples.length; i += 1) {
+      for (let j = i; j < samples.length; j += 1) {
+        const spanMs =
+          Date.parse(samples[j].time) - Date.parse(samples[i].time);
+        if (spanMs < 5 * 60 * 1000) {
+          continue;
+        }
+
+        let sum = 0;
+        for (let k = i; k <= j; k += 1) {
+          sum += samples[k].temperature;
+        }
+        const mean = sum / (j - i + 1);
+        if (mean > 50) {
+          found = true;
+          break;
+        }
+      }
+      if (found) {
+        break;
+      }
+    }
+
+    expect(found).to.equal(true);
+  });
+}

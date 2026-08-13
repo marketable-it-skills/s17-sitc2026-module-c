@@ -1,0 +1,27 @@
+meta {
+  name: 02 Select active QR code
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/qr/current
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "qrId": "qr-002"
+  }
+}
+
+tests {
+  test("selects the requested QR code", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body.qrId).to.equal("qr-002");
+    expect(res.body.payload).to.equal(
+      "https://app.swaploop.test/stations/station-002"
+    );
+  });
+}

@@ -34,9 +34,9 @@ Implement an independently runnable Main Backend so that later frontend modules 
 Build the API with a server-side language and framework available in the competition environment.
 
 - Use **MySQL** for persistence. Import [`assets/db/swaploop_db.sql`](./assets/db/swaploop_db.sql) .
-- Implement the API according to [`assets/api/main-backend.openapi.yaml`](./assets/api/main-backend.openapi.yaml). That document is the authoritative contract for paths, requests, responses, security, and errors.
-- A Bruno / OpenCollection suite for the **Main Backend** is provided under [`assets/bruno/`](./assets/bruno/).
-- Call the provided **Station Service** at `https://cXX-YYYY-station-service.sitc.skillsit.eu` (replace `cXX` / `YYYY` with your competition username and PIN). Its API is unprotected; only your Main Backend should use it. See [`assets/api/station-service-openapi.yaml`](./assets/api/station-service-openapi.yaml) and the Station Service Bruno suite under [`assets/station-service/bruno/`](./assets/station-service/bruno/).
+- Implement the API according to [`assets/api/main-backend.openapi.yaml`](./assets/api/main-backend.openapi.yaml). That document is the authoritative contract for paths, requests, responses, security, and errors. Offline Swagger UI: [`assets/api/main-backend-docs/index.html`](./assets/api/main-backend-docs/index.html).
+- A Bruno / OpenCollection suite for the **Main Backend** is provided under [`assets/bruno/main-backend`](./assets/bruno/main-backend).
+- Call the provided **Station Service** at `https://cXX-YYYY-station-service.sitc.skillsit.eu` (replace `cXX` / `YYYY` with your competition username and PIN). Its API is unprotected; only your Main Backend should use it. See [`assets/api/station-service-openapi.yaml`](./assets/api/station-service-openapi.yaml), the offline Swagger UI at [`assets/api/station-service-docs/index.html`](./assets/api/station-service-docs/index.html), and the Station Service Bruno suite under [`assets/bruno/station-service`](./assets/bruno/station-service).
 
 All Main Backend API paths in this document are relative to `/api/v1` on whatever host you run (for example `POST /auth/login` means `POST {baseUrl}/api/v1/auth/login`). Use your local development URL while building; during assessment, the deployed Main Backend is available at `https://cXX-YYYY-module-c.sitc.skillsit.eu` (replace `cXX` / `YYYY` with your competition username and PIN).
 

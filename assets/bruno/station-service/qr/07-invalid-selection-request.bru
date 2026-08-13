@@ -1,0 +1,22 @@
+meta {
+  name: 07 Reject invalid selection request
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/qr/current
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("returns a validation error", function () {
+    expect(res.status).to.equal(400);
+    expect(res.body.code).to.equal("INVALID_REQUEST");
+  });
+}

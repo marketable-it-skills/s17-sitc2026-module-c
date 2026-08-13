@@ -1,0 +1,32 @@
+meta {
+  name: 01 List all QR codes
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/qr-codes
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns all QR-code records", function () {
+    expect(res.status).to.equal(200);
+    expect(res.body).to.be.an("array");
+    expect(res.body).to.have.lengthOf(5);
+  });
+
+  test("includes only station deep-link QR codes", function () {
+    expect(res.body.every((item) => item.resource_type === "STATION")).to.equal(true);
+    expect(res.body[0].qr_payload).to.equal(
+      "https://app.swaploop.test/stations/station-001"
+    );
+    expect(res.body[0].station_name).to.equal("Haitang Garden East Gate");
+  });
+
+  test("includes active and disabled QR codes", function () {
+    expect(res.body.some((item) => item.status === "ACTIVE")).to.equal(true);
+    expect(res.body.some((item) => item.status === "DISABLED")).to.equal(true);
+  });
+}
