@@ -20,13 +20,7 @@ The task was modularized and standardized for the Erasmus+ **"Marketable IT Skil
 - [OpenAPI Contract (Station Service)](assets/api/station-service-openapi.yaml)
 - [Station Service Swagger UI](assets/api/station-service-docs/index.html)
 - [MySQL seed](assets/db/swaploop_db.sql)
-- [Authentication & test identities](assets/handouts/handout-authentication-and-test-identities.md)
-- [Last-charge safety](assets/handouts/handout-last-charge-safety.md)
-- [Live bike-bay charging](assets/handouts/handout-charging-live-session.md)
-- [Station Service](assets/station-service/)
-- [QR-code emulator](assets/qr-code-emulator/)
 - [Bruno test suite](assets/bruno/)
-- [Assets overview](assets/README.md)
 - [Marking Scheme](marking/marking-scheme.json)
 
 ## About the project

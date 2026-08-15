@@ -5,14 +5,14 @@ info:
 
 http:
   method: POST
-  url: "{{baseUrl}}/reset"
+  url: "{{stationServiceBaseUrl}}/reset"
   auth: inherit
 
 runtime:
   scripts:
     - type: tests
       code: |-
-        test("A0.1: POST /reset restores seed database", function() {
+        test("A0.1: Station Service POST /reset restores seed database", function() {
           expect(res.status).to.equal(200);
           expect(res.body.status).to.equal("ok");
         });

@@ -9,3 +9,9 @@ variables:
   - name: baseUrlDeployment
     value: https://c10-7510-module-c-solution.sitc.skillsit.eu/api/v1
     description: ""
+  - name: stationServiceBaseUrl
+    value: http://localhost:4020
+    description: Station Service (DB reset + telemetry)
+  - name: stationServiceBaseUrlDeployment
+    value: https://c10-7510-station-service.sitc.skillsit.eu
+    description: ""

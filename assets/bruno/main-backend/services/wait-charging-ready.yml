@@ -1,0 +1,35 @@
+info:
+  name: wait-charging-ready
+  type: http
+  seq: 20
+
+http:
+  method: GET
+  url: "{{baseUrl}}/services/{{chargingServiceId}}/charging-status"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-002
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: pre-request
+      code: |-
+        // Station Service bike-bay sessions default to ~15s; wait then poll once.
+        await new Promise((resolve) => setTimeout(resolve, 16000));
+    - type: tests
+      code: |-
+        test("GET /charging-status after session → READY_FOR_COLLECTION", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.service).to.be.an("object");
+          expect(res.body.service.type).to.equal("CHARGING");
+          expect(res.body.service.state).to.equal("READY_FOR_COLLECTION");
+          expect(res.body.charging).to.be.an("object");
+          expect(res.body.charging.status).to.equal("COMPLETED");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

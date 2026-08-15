@@ -40,8 +40,6 @@ tags:
     description: Last-charge telemetry evaluation and quarantine
   - name: Billing
     description: Pay-as-you-go price catalog (Alipay debit TBD)
-  - name: Admin
-    description: Assessor / reset utilities
 
 security:
   - bearerAuth: []
@@ -469,7 +467,7 @@ paths:
         - SWAP: `POST /services/{id}/start` (`RESERVED`→`STARTED`), `/confirm` (`STARTED`→`CONFIRMED`), `/cancel`
         - CHARGING: `/start` starts Station Service bike-bay session then `RESERVED`→`CHARGING`;
           poll `GET /services/{id}/charging-status` (auto `READY_FOR_COLLECTION` on complete);
-          `/collect`; optional `/ready` fallback; `/cancel` from `RESERVED` only
+          `/collect`; `/cancel` from `RESERVED` only
       operationId: createService
       requestBody:
         required: true
@@ -719,8 +717,8 @@ paths:
         Owner-only. Allowed while service is `CHARGING` or `READY_FOR_COLLECTION`.
         Proxies the Station Service bike-bay session. When Station Service reports
         `COMPLETED` and the service is still `CHARGING`, Main Backend auto-transitions
-        to `READY_FOR_COLLECTION` (unit follows). Happy-path SPA uses this poll instead
-        of `POST /ready`.
+        to `READY_FOR_COLLECTION` (unit follows). This poll is the only public path
+        into `READY_FOR_COLLECTION` before `/collect`.
       operationId: getServiceChargingStatus
       parameters:
         - name: serviceId
@@ -787,55 +785,6 @@ paths:
       responses:
         "200":
           description: Confirmed swap service
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Service"
-        "401":
-          description: Missing / invalid token
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "403":
-          description: Not the service owner
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Unknown service
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: Illegal type or state
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          $ref: "#/components/responses/InternalError"
-
-  /services/{serviceId}/ready:
-    post:
-      tags: [Services]
-      summary: Mark charging ready for collection (fallback)
-      description: |
-        Owner-only. CHARGING only: `CHARGING`→`READY_FOR_COLLECTION`
-        (unit follows). Idempotent when already ready. SWAP → `409`.
-        Happy path prefers auto-ready via `GET /charging-status` when Station Service
-        completes; this endpoint remains as an assessor / offline fallback.
-      operationId: markChargingReady
-      parameters:
-        - name: serviceId
-          in: path
-          required: true
-          schema: { type: string }
-      responses:
-        "200":
-          description: Charging service ready for collection
           content:
             application/json:
               schema:
@@ -1011,27 +960,6 @@ paths:
                         amountYuan:
                           type: integer
                           example: 5
-        "500":
-          $ref: "#/components/responses/InternalError"
-
-  /reset:
-    post:
-      tags: [Admin]
-      summary: Reset database from dump
-      description: |
-        Public endpoint. Reloads `db/swaploop_db.sql` into the configured `DB_NAME`.
-        No bearer token required.
-      security: []
-      operationId: resetDatabase
-      responses:
-        "200":
-          description: Database restored
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StatusOk"
-              example:
-                status: ok
         "500":
           $ref: "#/components/responses/InternalError"
 

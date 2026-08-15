@@ -323,11 +323,15 @@ paths:
       tags: [Admin]
       summary: Reset Module C MySQL seed
       description: |
-        Convenience assessor endpoint. Reloads the Station Service bundled
-        `db/swaploop_db.sql` dump into the configured MySQL database
-        (`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`).
+        Convenience assessor / competitor endpoint. Reloads the Station Service
+        bundled `db/swaploop_db.sql` dump into the configured MySQL database
+        (`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`) used by the
+        Module C Main Backend.
 
-        No bearer token required (mirrors Module C `POST /api/v1/reset`).
+        This is the **authoritative database reset** for Module C assessment and
+        local testing. The Main Backend public OpenAPI does **not** expose `/reset`.
+
+        No bearer token required.
       operationId: resetModuleCDatabase
       responses:
         "200":
