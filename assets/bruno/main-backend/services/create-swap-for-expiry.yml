@@ -1,7 +1,7 @@
 info:
-  name: create-swap-for-confirm-conflict
+  name: create-swap-for-expiry
   type: http
-  seq: 15
+  seq: 31
 
 http:
   method: POST
@@ -24,9 +24,10 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        test("create reserved swap for confirm-without-start", function() {
+        test("create RESERVED swap for expiry case", function() {
           expect(res.status).to.equal(201);
-          bru.setVar("swapReservedServiceId", res.body.id);
+          expect(res.body.state).to.equal("RESERVED");
+          bru.setVar("expirySwapServiceId", res.body.id);
         });
 
 settings:

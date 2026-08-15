@@ -1,0 +1,41 @@
+info:
+  name: "G1 - create-swap-skips-spike-pack"
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-003
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "SWAP",
+        "stationId": "station-002"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("G1 - POST /services SWAP skips spiked last-charge pack and reserves a safe alternative", function() {
+          expect(res.status).to.equal(201);
+          expect(res.body.type).to.equal("SWAP");
+          expect(res.body.stationId).to.equal("station-002");
+          expect(res.body.state).to.equal("RESERVED");
+          expect(res.body.batteryOutId).to.equal("battery-008");
+          expect(res.body.unitId).to.equal("unit-015");
+          bru.setVar("spikeSwapServiceId", res.body.id);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

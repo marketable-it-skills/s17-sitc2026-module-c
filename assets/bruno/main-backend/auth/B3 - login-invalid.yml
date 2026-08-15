@@ -1,0 +1,27 @@
+info:
+  name: "B3 - login-invalid"
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/login"
+  body:
+    type: json
+    data: '{ "email": "sun.hao2@swaploop.test", "password": "password123" }'
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("B3 - POST /auth/login rejects invalid credentials with 401 UNAUTHORIZED", function() {
+          expect(res.status).to.equal(401);
+          expect(res.body.code).to.equal("UNAUTHORIZED");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

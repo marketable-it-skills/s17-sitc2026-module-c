@@ -1,0 +1,25 @@
+info:
+  name: "D4 - stations-compatible-bike-bay"
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: "{{baseUrl}}/stations?service=BIKE_BAY&connectorType=GB-AC-48"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("D4 - GET /stations filters compatible BIKE_BAY stations for the rider", function() {
+          expect(res.status).to.equal(200);
+          const ids = res.body.stations.map((s) => s.id).sort();
+          expect(ids).to.deep.equal(["station-001", "station-003"]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

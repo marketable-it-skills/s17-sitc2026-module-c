@@ -1,0 +1,34 @@
+info:
+  name: "B6 - register-conflict"
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/register"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "lin.xiaoyu@swaploop.test",
+        "password": "password123",
+        "displayName": "Lin Xiaoyu",
+        "batteryMode": "SWAPPABLE",
+        "batteryType": "SL-48"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("B6 - POST /auth/register rejects duplicate email with 409 CONFLICT", function() {
+          expect(res.status).to.equal(409);
+          expect(res.body.code).to.equal("CONFLICT");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

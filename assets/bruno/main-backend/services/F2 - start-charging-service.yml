@@ -1,0 +1,29 @@
+info:
+  name: "F2 - start-charging-service"
+  type: http
+  seq: 20
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services/{{chargingServiceId}}/start"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-002
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("F2 - POST /services/{id}/start starts Station Service session and sets CHARGING", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.type).to.equal("CHARGING");
+          expect(res.body.state).to.equal("CHARGING");
+          expect(res.body.startedAt).to.be.a("string");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

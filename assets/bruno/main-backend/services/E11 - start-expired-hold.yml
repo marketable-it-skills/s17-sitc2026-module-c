@@ -1,0 +1,31 @@
+info:
+  name: "E11 - start-expired-hold"
+  type: http
+  seq: 32
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services/{{expirySwapServiceId}}/start"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-001
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        // Competition holds are 10 seconds; wait past expiresAt.
+        await bru.sleep(11000);
+    - type: tests
+      code: |-
+        test("E11 - POST /services/{id}/start on expired hold returns 409 CONFLICT", function() {
+          expect(res.status).to.equal(409);
+          expect(res.body.code).to.equal("CONFLICT");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

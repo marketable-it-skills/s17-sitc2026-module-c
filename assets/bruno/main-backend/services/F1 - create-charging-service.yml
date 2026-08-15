@@ -1,0 +1,41 @@
+info:
+  name: "F1 - create-charging-service"
+  type: http
+  seq: 19
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-002
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "type": "CHARGING",
+        "stationId": "station-001"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("F1 - POST /services creates a RESERVED CHARGING hold", function() {
+          expect(res.status).to.equal(201);
+          expect(res.body.type).to.equal("CHARGING");
+          expect(res.body.riderId).to.equal("rider-002");
+          expect(res.body.stationId).to.equal("station-001");
+          expect(res.body.state).to.equal("RESERVED");
+          expect(res.body.unitId).to.be.a("string");
+          bru.setVar("chargingServiceId", res.body.id);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

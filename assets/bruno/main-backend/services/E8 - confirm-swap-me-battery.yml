@@ -1,0 +1,27 @@
+info:
+  name: "E8 - confirm-swap-me-battery"
+  type: http
+  seq: 12
+
+http:
+  method: GET
+  url: "{{baseUrl}}/me"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-001
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("E8 - after confirm, GET /me currentBatteryId is the pack taken from the bay", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.currentBatteryId).to.equal(bru.getVar("swapTakenBatteryId"));
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

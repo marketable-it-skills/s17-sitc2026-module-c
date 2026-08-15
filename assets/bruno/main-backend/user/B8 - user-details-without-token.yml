@@ -1,0 +1,27 @@
+info:
+  name: "B8 - user-details-without-token"
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/me"
+  body:
+    type: json
+    data: ""
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("B8 - GET /me without Authorization returns 401 UNAUTHORIZED", function() {
+          expect(res.status).to.equal(401);
+          expect(res.body.code).to.equal("UNAUTHORIZED");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

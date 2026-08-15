@@ -1,1 +1,455 @@
-{}
+{
+  "totalMark": 16,
+  "wsosSections": {
+    "1": "Work organization and self-management",
+    "2": "Communication and interpersonal skills",
+    "3": "Design Implementation",
+    "4": "Front-End Development",
+    "5": "Back-End Development"
+  },
+  "subCriterions": [
+    {
+      "name": "Project setup and health",
+      "aspects": [
+        {
+          "type": "measurement",
+          "description": "A1 - GET /health returns 200 with status ok",
+          "maxMark": 0.5,
+          "wsosSection": 1,
+          "extraDescription": "Bruno: tools/A1 - health.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "A2 - API runs against the provided swaploop_db.sql seed identities",
+          "maxMark": 0.5,
+          "wsosSection": 1,
+          "extraDescription": "Bruno: auth/B1 - login.yml — seed rider lin.xiaoyu@swaploop.test / password123 returns token sl_tok_rider-001.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "A3 - Station Service POST /reset restores the Module C MySQL seed",
+          "maxMark": 0.5,
+          "wsosSection": 1,
+          "extraDescription": "Bruno: auth/A3 - reset.yml — POST {{stationServiceBaseUrl}}/reset → 200, body.status === \"ok\". Main Backend must not require its own /reset.",
+          "calculation": { "type": "pass-or-fail" }
+        }
+      ]
+    },
+    {
+      "name": "Authentication and registration",
+      "aspects": [
+        {
+          "type": "measurement",
+          "description": "B1 - POST /auth/login returns 200 with opaque token for a seed rider",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: auth/B1 - login.yml — body.token is string sl_tok_rider-001.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "B2 - POST /auth/login rejects suspended accounts with 403 FORBIDDEN",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: auth/B2 - login-suspended.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "B3 - POST /auth/login rejects invalid credentials with 401 UNAUTHORIZED",
+          "maxMark": 0.25,
+          "wsosSection": 2,
+          "extraDescription": "Bruno: auth/B3 - login-invalid.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "B4 - POST /auth/register creates SWAPPABLE rider and returns 201 with token",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: auth/B4 - register.yml — SWAPPABLE + batteryType SL-48 → 201, non-empty token.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "B5 - POST /auth/register creates INTEGRATED rider and returns 201 with token",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: auth/B5 - register-integrated.yml — INTEGRATED + connectorType GB-AC-48 → 201, token.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "B6 - POST /auth/register rejects duplicate email with 409 CONFLICT",
+          "maxMark": 0.25,
+          "wsosSection": 2,
+          "extraDescription": "Bruno: auth/B6 - register-conflict.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "B7 - POST /auth/register rejects invalid batteryMode/type combo with 422 VALIDATION_ERROR",
+          "maxMark": 0.25,
+          "wsosSection": 2,
+          "extraDescription": "Bruno: auth/B7 - register-invalid-combo.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "B8 - GET /me without Authorization or with unknown token returns 401 UNAUTHORIZED",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: user/B8 - user-details-without-token.yml and user/B8 - user-details-with-invalid-token.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        }
+      ]
+    },
+    {
+      "name": "Rider profile",
+      "aspects": [
+        {
+          "type": "measurement",
+          "description": "C1 - GET /me returns SWAPPABLE rider profile fields",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: user/C1 - user-details.yml — rider-001, SWAPPABLE, batteryType SL-48, connectorType null.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "C2 - GET /me returns INTEGRATED rider profile fields",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: user/C2 - user-details-integrated.yml — rider-002, INTEGRATED, connectorType GB-AC-48, batteryType null, voltageClass 48V.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "C3 - GET /me rejects suspended token with 403 FORBIDDEN",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: user/C3 - user-details-suspended.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "C4 - PATCH /me updates displayable profile fields",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: user/C4 - update-profile.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "C5 - PATCH /me rejects invalid profile changes with 422 VALIDATION_ERROR",
+          "maxMark": 0.25,
+          "wsosSection": 2,
+          "extraDescription": "Bruno: user/C5 - update-profile-validation.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        }
+      ]
+    },
+    {
+      "name": "Station discovery",
+      "aspects": [
+        {
+          "type": "measurement",
+          "description": "D1 - GET /stations returns the station list",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: stations/D1 - stations.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "D2 - GET /stations supports nearby ordering by lat/lng",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: stations/D2 - stations-nearby.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "D3 - GET /stations filters compatible SWAP stations for the rider",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: stations/D3 - stations-compatible-swap.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "D4 - GET /stations filters compatible BIKE_BAY stations for the rider",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: stations/D4 - stations-compatible-bike-bay.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "D5 - GET /stations/{id} returns detail with compatibility",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: stations/D5 - station-detail.yml — station-001 HYBRID; compatibility includes SWAP, BIKE_BAY, SL-48, GB-AC-48, 48V.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "D6 - GET /stations/{id} unknown id returns 404 NOT_FOUND",
+          "maxMark": 0.25,
+          "wsosSection": 2,
+          "extraDescription": "Bruno: stations/D6 - station-detail-not-found.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "D7 - GET /stations includes riderAvailability for SWAPPABLE rider",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: stations/D7 - stations-rider-availability.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "D8 - GET /stations/{id} includes riderAvailability for SWAPPABLE rider",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: stations/D8 - station-detail-rider-availability.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "D9 - GET /stations/{id} includes riderAvailability for INTEGRATED rider",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: stations/D9 - station-detail-rider-availability-integrated.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        }
+      ]
+    },
+    {
+      "name": "Swap service lifecycle",
+      "aspects": [
+        {
+          "type": "measurement",
+          "description": "E1 - POST /services creates a RESERVED SWAP hold",
+          "maxMark": 0.5,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/E1 - create-swap-service.yml — 201, type SWAP, state RESERVED, unitId and expiresAt set.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "E2 - POST /services rejects incompatible vehicle profile for SWAP",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/E2 - create-swap-wrong-profile.yml — INTEGRATED rider requesting SWAP → 422.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "E3 - GET /services/{id} returns the reserved swap for the owner",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/E3 - get-service.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "E4 - POST /services while rider has an active hold returns 409 CONFLICT",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/E4 - create-second-active-conflict.yml — second create while RESERVED → 409.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "E5 - POST /services/{id}/start moves SWAP from RESERVED to STARTED",
+          "maxMark": 0.5,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/E5 - start-swap-service.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "E6 - POST /services/{id}/start is idempotent when already STARTED",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/E6 - start-swap-idempotent.yml — second start → 200, state remains STARTED.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "E7 - POST /services/{id}/start rejects non-owner with 403 FORBIDDEN",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/E7 - start-swap-non-owner.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "E8 - POST /services/{id}/confirm completes SWAP with inventory exchange and PAYG snapshot",
+          "maxMark": 0.5,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/E8 - confirm-swap-service.yml and services/E8 - confirm-swap-me-battery.yml — state CONFIRMED, batteryInId battery-101, priceYuan 5, priceCode SWAP_SL-48; GET /me currentBatteryId updates.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "E9 - POST /services/{id}/confirm from RESERVED without start returns 409 CONFLICT",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/E9 - confirm-swap-from-reserved-conflict.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "E10 - POST /services/{id}/cancel sets SWAP to CANCELLED",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/E10 - cancel-swap-service.yml — state CANCELLED with completedAt.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "E11 - POST /services/{id}/start on expired hold returns 409 CONFLICT",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/E11 - start-expired-hold.yml — wait past expiresAt (~11s), then start → 409.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "E12 - GET /me/activity returns the rider service history",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/E12 - get-my-activity.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        }
+      ]
+    },
+    {
+      "name": "Charging service lifecycle",
+      "aspects": [
+        {
+          "type": "measurement",
+          "description": "F1 - POST /services creates a RESERVED CHARGING hold",
+          "maxMark": 0.5,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/F1 - create-charging-service.yml — 201, type CHARGING, state RESERVED, unitId set.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "F2 - POST /services/{id}/start starts Station Service session and sets CHARGING",
+          "maxMark": 0.5,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/F2 - start-charging-service.yml — state CHARGING with startedAt (Station Service must be running).",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "F3 - GET /charging-status auto-transitions to READY_FOR_COLLECTION when Station Service completes",
+          "maxMark": 0.5,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/F3 - get-charging-status.yml and services/F3 - wait-charging-ready.yml — after ~15s session, service.state READY_FOR_COLLECTION and charging.status COMPLETED.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "F4 - POST /services/{id}/collect completes charging with PAYG snapshot",
+          "maxMark": 0.5,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/F4 - collect-charging-service.yml — state COLLECTED, priceYuan 3, priceCode CHARGE_GB-AC-48.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "F5 - POST /services/{id}/collect before READY_FOR_COLLECTION returns 409 CONFLICT",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/F5 - collect-before-ready.yml — collect while still CHARGING → 409.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "F6 - POST /services/{id}/cancel after charging start returns 409 CONFLICT",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/F6 - cancel-charging-after-start.yml — cancel while CHARGING → 409.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "F7 - POST /services/{id}/start fail-closed when Station Service is unavailable (502 or 409)",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/F7 - start-charging-fail-closed.yml — assessor stops Station Service (or points STATION_SERVICE_URL at a closed port), creates a CHARGING hold, then start → 502 BAD_GATEWAY or 409 CONFLICT.",
+          "calculation": { "type": "pass-or-fail" }
+        }
+      ]
+    },
+    {
+      "name": "Battery safety and price catalog",
+      "aspects": [
+        {
+          "type": "measurement",
+          "description": "G1 - POST /services SWAP skips spiked last-charge pack and reserves a safe alternative",
+          "maxMark": 0.5,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/G1 - create-swap-skips-spike-pack.yml — station-002 reserves battery-008 / unit-015 (not battery-005).",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "G2 - POST /services SWAP rejects sustained-heat quarantine with 409",
+          "maxMark": 0.5,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/G2 - create-swap-sustained-quarantine.yml — no remaining safe pack → 409.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "G3 - POST /batteries/{id}/evaluate-last-charge returns SAFE for ok telemetry",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: batteries/G3 - evaluate-ok.yml — battery-001 outcome SAFE.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "G4 - POST /batteries/{id}/evaluate-last-charge returns QUARANTINED for spike telemetry",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: batteries/G4 - evaluate-spike.yml — battery-005 quarantined.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "G5 - POST /batteries/{id}/evaluate-last-charge returns QUARANTINED for sustained-heat telemetry",
+          "maxMark": 0.25,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: batteries/G5 - evaluate-sustained.yml — battery-007 quarantined.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "G6 - POST /batteries/{id}/evaluate-last-charge returns 404 NO_TELEMETRY when samples are missing",
+          "maxMark": 0.25,
+          "wsosSection": 2,
+          "extraDescription": "Bruno: batteries/G6 - evaluate-no-telemetry.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        },
+        {
+          "type": "measurement",
+          "description": "G7 - GET /price-list returns the active PAYG catalog",
+          "maxMark": 0.5,
+          "wsosSection": 5,
+          "extraDescription": "Bruno: services/G7 - get-price-list.yml.",
+          "calculation": { "type": "pass-or-fail" }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+info:
+  name: "C3 - user-details-suspended"
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/me"
+  headers:
+    - name: Authorization
+      value: "Bearer sl_tok_rider-006"
+  body:
+    type: json
+    data: ""
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("C3 - GET /me rejects suspended token with 403 FORBIDDEN", function() {
+          expect(res.status).to.equal(403);
+          expect(res.body.code).to.equal("FORBIDDEN");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,56 @@
+[
+  {
+    "iterationIndex": 0,
+    "summary": {
+      "totalRequests": 3,
+      "passedRequests": 2,
+      "failedRequests": 1,
+      "errorRequests": 0,
+      "skippedRequests": 0,
+      "totalTests": 3,
+      "passedTests": 2,
+      "failedTests": 1,
+      "totalAssertions": 0,
+      "passedAssertions": 0,
+      "failedAssertions": 0
+    },
+    "results": [
+      {
+        "name": "A1 - health",
+        "path": "tools/A1 - health.yml",
+        "test": { "filename": "tools/A1 - health.yml" },
+        "runDuration": 0.05,
+        "testResults": [
+          {
+            "description": "A1 - GET /health returns 200 with status ok",
+            "status": "pass"
+          }
+        ]
+      },
+      {
+        "name": "B1 - login",
+        "path": "auth/B1 - login.yml",
+        "test": { "filename": "auth/B1 - login.yml" },
+        "runDuration": 0.08,
+        "testResults": [
+          {
+            "description": "B1 - POST /auth/login returns 200 with opaque token for a seed rider",
+            "status": "pass"
+          }
+        ]
+      },
+      {
+        "name": "reset-before-happy-path",
+        "path": "services/reset-before-happy-path.yml",
+        "test": { "filename": "services/reset-before-happy-path.yml" },
+        "runDuration": 0.1,
+        "testResults": [
+          {
+            "description": "Station Service reset DB before happy-path swap",
+            "status": "pass"
+          }
+        ]
+      }
+    ]
+  }
+]

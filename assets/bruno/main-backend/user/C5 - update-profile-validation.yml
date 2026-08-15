@@ -1,0 +1,33 @@
+info:
+  name: "C5 - update-profile-validation"
+  type: http
+  seq: 7
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/me"
+  headers:
+    - name: Authorization
+      value: "Bearer sl_tok_rider-001"
+  body:
+    type: json
+    data: |-
+      {
+        "batteryType": "SL-60"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("C5 - PATCH /me rejects invalid profile changes with 422 VALIDATION_ERROR", function() {
+          expect(res.status).to.equal(422);
+          expect(res.body.code).to.equal("VALIDATION_ERROR");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

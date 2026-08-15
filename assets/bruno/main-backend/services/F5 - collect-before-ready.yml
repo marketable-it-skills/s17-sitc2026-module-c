@@ -1,0 +1,27 @@
+info:
+  name: "F5 - collect-before-ready"
+  type: http
+  seq: 21
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services/{{chargingServiceId}}/collect"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-002
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("F5 - POST /services/{id}/collect before READY_FOR_COLLECTION returns 409 CONFLICT", function() {
+          expect(res.status).to.equal(409);
+          expect(res.body.code).to.equal("CONFLICT");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

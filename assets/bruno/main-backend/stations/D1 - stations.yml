@@ -1,0 +1,31 @@
+info:
+  name: "D1 - stations"
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/stations"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("D1 - GET /stations returns the station list", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.stations).to.be.an("array");
+          expect(res.body.stations.length).to.equal(5);
+          const first = res.body.stations.find((s) => s.id === "station-001");
+          expect(first).to.exist;
+          expect(first.name).to.equal("Haitang Garden East Gate");
+          expect(first.type).to.equal("HYBRID");
+          expect(first.lifecycleState).to.equal("ACTIVE");
+          expect(first.distanceMeters).to.equal(undefined);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

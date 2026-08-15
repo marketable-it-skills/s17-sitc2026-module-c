@@ -2,15 +2,15 @@
 
 ## Summary
 
-Module C has a solid competitor-facing brief, OpenAPI + Swagger packs, MySQL seed, and Bruno suites. It is **not assessment-ready** yet: `marking/marking-scheme.json` is empty and the mark distribution table totals **30** instead of the required **16**. Public contract cleanups done: `/ready` removed; Main Backend `/reset` removed in favour of Station Service `POST /reset` (documented in the PD); broken README asset links removed. Module C solution still exposes `/reset` for Module D.
+Module C has a solid competitor-facing brief, OpenAPI + Swagger packs, MySQL seed, Bruno suites, and a **16-point** marking scheme mapped to Bruno requests. Remaining review items: header hierarchy (`#####`), infra image path convention, optional polish.
 
 ## Issues Found
 
 ### Critical Issues
 
-1. **Empty marking scheme.** `marking/marking-scheme.json` is `{}` (4 bytes). It must be a valid MITS scheme with `totalMark`, `wsosSections`, and `subCriterions`.
+1. ~~**Empty marking scheme.**~~ **Resolved:** `marking/marking-scheme.json` totals **16** (45 measurement aspects; each maps to one Bruno request).
 
-2. **Total marks must be 16.** Current mark distribution table sums to **30** (S1=1, S2=2, S3=0, S4=0, S5=27). Update the PD table **and** the future JSON so both total **16**. Suggested direction (to confirm when authoring the scheme): keep S3/S4 at 0 for a backend-only module; put almost all weight in S5, with small S1/S2 shares (similar spirit to Module B’s backend-heavy split, scaled to 16).
+2. ~~**Total marks must be 16.**~~ **Resolved:** PD mark table synced (S1=1.5, S2=1.5, S5=13).
 
 3. ~~**`POST /reset` under-specified.**~~ **Resolved:** removed from Main Backend public OpenAPI. Competitors and marking reset via Station Service `POST /reset`. Documented in the project description. Module C solution keeps its own `/reset` for Module D.
 
@@ -22,7 +22,7 @@ Module C has a solid competitor-facing brief, OpenAPI + Swagger packs, MySQL see
 
 6. **Header hierarchy.** Requirements uses **17** `#####` endpoint headings. MITS guide tops out at `####`. Flatten to `####` (or keep group `####` + bold endpoint lines) for compliance.
 
-7. **Mark distribution still says scheme is “updated in a separate process”.** Replace with a real 16-point table once the JSON exists, matching sibling modules’ wording (“The mark distribution for this project is as follows:”).
+7. ~~**Mark distribution placeholder.**~~ **Resolved:** PD table now matches the 16-point scheme.
 
 ### Minor Issues
 
@@ -59,7 +59,7 @@ Module C has a solid competitor-facing brief, OpenAPI + Swagger packs, MySQL see
 - [x] project-description.md required sections present (Competition time → Mark distribution)
 - [ ] project-description.md header hierarchy (too many `#####`)
 - [x] metadata.json valid and complete (`estTime: 3` matches 3 hours)
-- [ ] marking-scheme.json valid (**empty**; must total **16**)
+- [x] marking-scheme.json valid (16 pts; matches mark table; 0 validator errors)
 - [ ] Mark distribution matches scheme (**30 ≠ 16**)
 - [ ] Assets properly organized / linked (broken README + missing handouts/packages)
 - [ ] No broken links or references
@@ -69,7 +69,7 @@ Module C has a solid competitor-facing brief, OpenAPI + Swagger packs, MySQL see
 
 ## Recommendations
 
-1. **Author `marking/marking-scheme.json` with `totalMark: 16`**, then sync the PD mark table to the same WSOS split.
+1. ~~**Author `marking/marking-scheme.json` with `totalMark: 16`.**~~ Done.
 2. ~~Add a PD subsection for **`POST /reset`**.~~ Done via Station Service reset note in Environment.
 3. Fix README links: ship Station Service / QR emulator under `assets/` **or** point only to hosted URLs + Bruno/OpenAPI (as Environment already does for Station Service).
 4. Move or copy `swaploop-infra.png` into `assets/project-description-images/` and update the markdown image path.

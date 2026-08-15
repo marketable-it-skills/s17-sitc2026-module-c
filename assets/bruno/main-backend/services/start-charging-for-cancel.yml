@@ -1,0 +1,27 @@
+info:
+  name: start-charging-for-cancel
+  type: http
+  seq: 28
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services/{{cancelChargingServiceId}}/start"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-002
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("start CHARGING session before cancel-after-start case", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.state).to.equal("CHARGING");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

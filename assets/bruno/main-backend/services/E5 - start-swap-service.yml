@@ -1,0 +1,29 @@
+info:
+  name: "E5 - start-swap-service"
+  type: http
+  seq: 9
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services/{{swapServiceId}}/start"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-001
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("E5 - POST /services/{id}/start moves SWAP from RESERVED to STARTED", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.type).to.equal("SWAP");
+          expect(res.body.state).to.equal("STARTED");
+          expect(res.body.startedAt).to.be.a("string");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
