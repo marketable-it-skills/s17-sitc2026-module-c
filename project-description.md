@@ -153,7 +153,7 @@ erDiagram
 | **stations**      | Discoverable locations (`SWAP` / `CHARGING` / `HYBRID`) with lifecycle and geo fields.                |
 | **station_units** | `SWAP_BAY` (Battery Slot) or `BIKE_BAY` (E-bike Charging Bay) with state and compatibility fields.    |
 | **services**      | Single lifecycle row for swap or charging; price snapshot columns filled at finish.                   |
-| **price_list**    | Active PAYG catalog in whole CNY.                                                                     |
+| **price_list**    | Pay-as-you-go prices for each service type (swap / charge), stored as whole yuan amounts.             |
 
 ### Technical constraints
 
@@ -626,7 +626,7 @@ On successful swap **confirm**, look up the matching active row in the `price_li
 **Behaviour (summary):**
 
 - Inventory exchange: bay goes `CHARGING` holding the rider’s previous pack (`batteryInId`); rider `currentBatteryId` becomes `batteryOutId`.
-- Snapshot PAYG `priceYuan` / `priceCode` from `price_list` (e.g. SL-48 → `5` / `SWAP_SL-48`).
+- Snapshot Pay As You Go (PAYG) `priceYuan` / `priceCode` from `price_list` (e.g. SL-48 → `5` / `SWAP_SL-48`).
 - Confirm from `RESERVED` alone must fail (`409`).
 
 **Response:** `200 OK` — Service with `state` `CONFIRMED`, `completedAt`, prices set.
@@ -741,13 +741,15 @@ Database restore for assessment uses Station Service `POST /reset`.
 
 ## Mark distribution
 
+The mark distribution for this project is as follows:
+
 | WSOS SECTION | Description                            | Points |
 | ------------ | -------------------------------------- | ------ |
-| 1            | Work organization and self-management  | 1      |
-| 2            | Communication and interpersonal skills | 2      |
+| 1            | Work organization and self-management  | 1.5    |
+| 2            | Communication and interpersonal skills | 1.5    |
 | 3            | Design Implementation                  | 0      |
 | 4            | Front-End Development                  | 0      |
-| 5            | Back-End Development                   | 27     |
-| **Total**    |                                        | 30     |
+| 5            | Back-End Development                   | 13     |
+| **Total**    |                                        | 16     |
 
-Final criterion-level marks live in [`marking/marking-scheme.json`](./marking/marking-scheme.json) (updated in a separate process).
+Final criterion-level marks live in [`marking/marking-scheme.json`](./marking/marking-scheme.json).
