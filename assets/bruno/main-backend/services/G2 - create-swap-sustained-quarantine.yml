@@ -1,14 +1,14 @@
 info:
-  name: create-swap-for-confirm-conflict
+  name: "G2 - create-swap-sustained-quarantine"
   type: http
-  seq: 15
+  seq: 4
 
 http:
   method: POST
   url: "{{baseUrl}}/services"
   headers:
     - name: Authorization
-      value: Bearer sl_tok_rider-001
+      value: "Bearer sl_tok_rider-003"
     - name: Content-Type
       value: application/json
   body:
@@ -16,7 +16,7 @@ http:
     data: |-
       {
         "type": "SWAP",
-        "stationId": "station-001"
+        "stationId": "station-005"
       }
   auth: inherit
 
@@ -24,9 +24,10 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        test("create reserved swap for confirm-without-start", function() {
-          expect(res.status).to.equal(201);
-          bru.setVar("swapReservedServiceId", res.body.id);
+        test("G2 - POST /services SWAP rejects sustained-heat quarantine with 409", function() {
+          expect(res.status).to.equal(409);
+          expect(res.body.code).to.equal("CONFLICT");
+          expect(res.body.message).to.match(/sustained|quarantined/i);
         });
 
 settings:

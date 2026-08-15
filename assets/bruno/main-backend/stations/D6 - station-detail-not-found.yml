@@ -1,0 +1,24 @@
+info:
+  name: "D6 - station-detail-not-found"
+  type: http
+  seq: 8
+
+http:
+  method: GET
+  url: "{{baseUrl}}/stations/station-missing"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("D6 - GET /stations/{id} unknown id returns 404 NOT_FOUND", function() {
+          expect(res.status).to.equal(404);
+          expect(res.body.code).to.equal("NOT_FOUND");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,26 @@
+info:
+  name: "D3 - stations-compatible-swap"
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{baseUrl}}/stations?service=SWAP&batteryType=SL-48"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("D3 - GET /stations filters compatible SWAP stations for the rider", function() {
+          expect(res.status).to.equal(200);
+          const ids = res.body.stations.map((s) => s.id).sort();
+          expect(ids).to.deep.equal(["station-001", "station-002", "station-005"]);
+          expect(res.body.stations.find((s) => s.id === "station-004")).to.equal(undefined);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,34 @@
+info:
+  name: "E8 - confirm-swap-service"
+  type: http
+  seq: 11
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services/{{swapServiceId}}/confirm"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-001
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("E8 - POST /services/{id}/confirm completes SWAP with inventory exchange and PAYG snapshot", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.type).to.equal("SWAP");
+          expect(res.body.state).to.equal("CONFIRMED");
+          expect(res.body.completedAt).to.be.a("string");
+          expect(res.body.batteryInId).to.equal("battery-101");
+          expect(res.body.batteryOutId).to.be.a("string");
+          expect(res.body.priceYuan).to.equal(5);
+          expect(res.body.priceCode).to.equal("SWAP_SL-48");
+          bru.setVar("swapTakenBatteryId", res.body.batteryOutId);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

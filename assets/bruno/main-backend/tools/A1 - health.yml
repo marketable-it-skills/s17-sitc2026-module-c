@@ -1,18 +1,18 @@
 info:
-  name: reset-before-charging
+  name: "A1 - health"
   type: http
-  seq: 18
+  seq: 1
 
 http:
-  method: POST
-  url: "{{stationServiceBaseUrl}}/reset"
+  method: GET
+  url: "{{baseUrl}}/health"
   auth: inherit
 
 runtime:
   scripts:
     - type: tests
       code: |-
-        test("Station Service reset DB before charging flow", function() {
+        test("A1 - GET /health returns 200 with status ok", function() {
           expect(res.status).to.equal(200);
           expect(res.body.status).to.equal("ok");
         });

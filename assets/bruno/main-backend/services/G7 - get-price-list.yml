@@ -1,0 +1,33 @@
+info:
+  name: "G7 - get-price-list"
+  type: http
+  seq: 25
+
+http:
+  method: GET
+  url: "{{baseUrl}}/price-list"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("G7 - GET /price-list returns the active PAYG catalog", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.currency).to.equal("CNY");
+          expect(res.body.items).to.be.an("array");
+          expect(res.body.items.length).to.equal(4);
+          const codes = res.body.items.map((i) => i.priceCode);
+          expect(codes).to.include.members([
+            "SWAP_SL-48",
+            "SWAP_SL-60",
+            "CHARGE_GB-AC-48",
+            "CHARGE_GB-AC-60",
+          ]);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

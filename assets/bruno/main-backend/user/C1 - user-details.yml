@@ -1,0 +1,40 @@
+info:
+  name: "C1 - user-details"
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/me"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-001
+  body:
+    type: json
+    data: ""
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("C1 - GET /me returns SWAPPABLE rider profile fields", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.id).to.equal("rider-001");
+          expect(res.body.email).to.equal("lin.xiaoyu@swaploop.test");
+          expect(res.body.displayName).to.equal("Lin Xiaoyu");
+          expect(res.body.role).to.equal("RIDER");
+          expect(res.body.status).to.equal("ACTIVE");
+          expect(res.body.batteryMode).to.equal("SWAPPABLE");
+          expect(res.body.batteryType).to.equal("SL-48");
+          expect(res.body.connectorType).to.equal(null);
+          expect(res.body.voltageClass).to.equal("48V");
+          expect(res.body.currentBatteryId).to.equal("battery-101");
+          expect(res.body.partnerId).to.equal(null);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

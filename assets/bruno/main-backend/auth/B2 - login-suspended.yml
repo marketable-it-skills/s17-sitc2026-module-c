@@ -1,0 +1,27 @@
+info:
+  name: "B2 - login-suspended"
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/login"
+  body:
+    type: json
+    data: '{ "email": "sun.hao@swaploop.test", "password": "password123" }'
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("B2 - POST /auth/login rejects suspended accounts with 403 FORBIDDEN", function() {
+          expect(res.status).to.equal(403);
+          expect(res.body.code).to.equal("FORBIDDEN");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

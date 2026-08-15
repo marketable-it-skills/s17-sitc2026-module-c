@@ -1,0 +1,31 @@
+info:
+  name: "F4 - collect-charging-service"
+  type: http
+  seq: 24
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services/{{chargingServiceId}}/collect"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-002
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("F4 - POST /services/{id}/collect completes charging with PAYG snapshot", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.type).to.equal("CHARGING");
+          expect(res.body.state).to.equal("COLLECTED");
+          expect(res.body.completedAt).to.be.a("string");
+          expect(res.body.priceYuan).to.equal(3);
+          expect(res.body.priceCode).to.equal("CHARGE_GB-AC-48");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

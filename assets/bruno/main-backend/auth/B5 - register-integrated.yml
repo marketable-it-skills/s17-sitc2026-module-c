@@ -1,0 +1,35 @@
+info:
+  name: "B5 - register-integrated"
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/register"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "charge.rider@swaploop.test",
+        "password": "password123",
+        "displayName": "Charge Rider",
+        "batteryMode": "INTEGRATED",
+        "connectorType": "GB-AC-48"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("B5 - POST /auth/register creates INTEGRATED rider and returns 201 with token", function() {
+          expect(res.status).to.equal(201);
+          expect(res.body.token).to.be.a("string");
+          expect(res.body.token.length).to.be.greaterThan(0);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

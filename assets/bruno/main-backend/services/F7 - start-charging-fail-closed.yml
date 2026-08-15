@@ -1,0 +1,43 @@
+info:
+  name: "F7 - start-charging-fail-closed"
+  type: http
+  seq: 99
+  tags:
+    - manual
+    - F7
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services/{{failClosedChargingServiceId}}/start"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-002
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        // Assessor-only: requires a reserved CHARGING id in failClosedChargingServiceId
+        // AND Station Service unavailable. Automated suite skips when unprepared.
+        const id = bru.getVar("failClosedChargingServiceId");
+        if (!id) {
+          console.log("F7 skipped: set failClosedChargingServiceId after creating a CHARGING hold with Station Service down");
+          bru.runner.skipRequest();
+        }
+    - type: tests
+      code: |-
+        test("F7 - POST /services/{id}/start fail-closed when Station Service is unavailable (502 or 409)", function() {
+          expect([502, 409]).to.include(res.status);
+          if (res.status === 502) {
+            expect(res.body.code).to.equal("BAD_GATEWAY");
+          } else {
+            expect(res.body.code).to.equal("CONFLICT");
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

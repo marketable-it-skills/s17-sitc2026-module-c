@@ -1,0 +1,33 @@
+info:
+  name: "E12 - get-my-activity"
+  type: http
+  seq: 33
+
+http:
+  method: GET
+  url: "{{baseUrl}}/me/activity"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-001
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("E12 - GET /me/activity returns the rider service history", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body).to.have.property("active");
+          expect(res.body).to.have.property("recent");
+          expect(res.body.recent).to.be.an("array");
+          if (res.body.active) {
+            expect(res.body.active.riderId).to.equal("rider-001");
+            expect(res.body.active.state).to.be.a("string");
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

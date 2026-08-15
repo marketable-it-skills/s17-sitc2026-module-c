@@ -1,0 +1,35 @@
+info:
+  name: "D7 - stations-rider-availability"
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: "{{baseUrl}}/stations"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-001
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("D7 - GET /stations includes riderAvailability for SWAPPABLE rider", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.stations).to.be.an("array");
+          expect(res.body.stations.length).to.be.above(0);
+          expect(res.body.stations.every((station) => station.riderAvailability)).to.equal(true);
+          const station001 = res.body.stations.find((station) => station.id === "station-001");
+          expect(station001).to.exist;
+          expect(station001.riderAvailability).to.deep.equal({
+            compatibleReadyBattery: true,
+            compatibleChargingBay: false
+          });
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

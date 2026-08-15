@@ -1,0 +1,30 @@
+info:
+  name: "D9 - station-detail-rider-availability-integrated"
+  type: http
+  seq: 10
+
+http:
+  method: GET
+  url: "{{baseUrl}}/stations/station-001"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-002
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("D9 - GET /stations/{id} includes riderAvailability for INTEGRATED rider", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.riderAvailability).to.deep.equal({
+            compatibleReadyBattery: false,
+            compatibleChargingBay: true
+          });
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

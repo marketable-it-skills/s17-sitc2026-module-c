@@ -1,0 +1,34 @@
+info:
+  name: "C2 - user-details-integrated"
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{baseUrl}}/me"
+  headers:
+    - name: Authorization
+      value: "Bearer sl_tok_rider-002"
+  body:
+    type: json
+    data: ""
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("C2 - GET /me returns INTEGRATED rider profile fields", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.id).to.equal("rider-002");
+          expect(res.body.batteryMode).to.equal("INTEGRATED");
+          expect(res.body.batteryType).to.equal(null);
+          expect(res.body.connectorType).to.equal("GB-AC-48");
+          expect(res.body.voltageClass).to.equal("48V");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

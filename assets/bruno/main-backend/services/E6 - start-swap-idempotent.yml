@@ -1,0 +1,28 @@
+info:
+  name: "E6 - start-swap-idempotent"
+  type: http
+  seq: 10
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services/{{swapServiceId}}/start"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-001
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("E6 - POST /services/{id}/start is idempotent when already STARTED", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.type).to.equal("SWAP");
+          expect(res.body.state).to.equal("STARTED");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,32 @@
+info:
+  name: "F3 - get-charging-status"
+  type: http
+  seq: 22
+
+http:
+  method: GET
+  url: "{{baseUrl}}/services/{{chargingServiceId}}/charging-status"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-002
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("F3 - GET /services/{id}/charging-status returns live telemetry proxy", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.service).to.be.an("object");
+          expect(res.body.service.type).to.equal("CHARGING");
+          expect(["CHARGING", "READY_FOR_COLLECTION"]).to.include(res.body.service.state);
+          expect(res.body.charging).to.be.an("object");
+          expect(["CHARGING", "COMPLETED"]).to.include(res.body.charging.status);
+          expect(res.body.charging.samples).to.be.an("array");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

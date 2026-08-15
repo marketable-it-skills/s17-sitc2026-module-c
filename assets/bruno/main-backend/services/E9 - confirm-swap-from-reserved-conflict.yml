@@ -1,0 +1,27 @@
+info:
+  name: "E9 - confirm-swap-from-reserved-conflict"
+  type: http
+  seq: 16
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services/{{swapReservedServiceId}}/confirm"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-001
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("E9 - POST /services/{id}/confirm from RESERVED without start returns 409 CONFLICT", function() {
+          expect(res.status).to.equal(409);
+          expect(res.body.code).to.equal("CONFLICT");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,14 +1,14 @@
 info:
-  name: create-swap-for-confirm-conflict
+  name: "E2 - create-swap-wrong-profile"
   type: http
-  seq: 15
+  seq: 1
 
 http:
   method: POST
   url: "{{baseUrl}}/services"
   headers:
     - name: Authorization
-      value: Bearer sl_tok_rider-001
+      value: Bearer sl_tok_rider-002
     - name: Content-Type
       value: application/json
   body:
@@ -24,9 +24,9 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        test("create reserved swap for confirm-without-start", function() {
-          expect(res.status).to.equal(201);
-          bru.setVar("swapReservedServiceId", res.body.id);
+        test("E2 - POST /services rejects incompatible vehicle profile for SWAP", function() {
+          expect(res.status).to.equal(422);
+          expect(res.body.code).to.equal("VALIDATION_ERROR");
         });
 
 settings:

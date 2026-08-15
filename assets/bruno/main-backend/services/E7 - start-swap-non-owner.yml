@@ -1,0 +1,27 @@
+info:
+  name: "E7 - start-swap-non-owner"
+  type: http
+  seq: 13
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services/{{swapServiceId}}/start"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-002
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("E7 - POST /services/{id}/start rejects non-owner with 403 FORBIDDEN", function() {
+          expect(res.status).to.equal(403);
+          expect(res.body.code).to.equal("FORBIDDEN");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

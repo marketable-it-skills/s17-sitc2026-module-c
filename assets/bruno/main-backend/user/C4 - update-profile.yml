@@ -1,0 +1,40 @@
+info:
+  name: "C4 - update-profile"
+  type: http
+  seq: 6
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/me"
+  headers:
+    - name: Authorization
+      value: "Bearer sl_tok_rider-001"
+  body:
+    type: json
+    data: |-
+      {
+        "displayName": "Lin X.",
+        "batteryMode": "INTEGRATED",
+        "connectorType": "GB-AC-48"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("C4 - PATCH /me updates displayable profile fields", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.id).to.equal("rider-001");
+          expect(res.body.displayName).to.equal("Lin X.");
+          expect(res.body.batteryMode).to.equal("INTEGRATED");
+          expect(res.body.batteryType).to.equal(null);
+          expect(res.body.connectorType).to.equal("GB-AC-48");
+          expect(res.body.voltageClass).to.equal("48V");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

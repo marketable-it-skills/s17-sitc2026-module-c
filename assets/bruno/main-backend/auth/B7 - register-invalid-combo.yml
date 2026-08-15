@@ -1,0 +1,35 @@
+info:
+  name: "B7 - register-invalid-combo"
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/register"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "bad.combo@swaploop.test",
+        "password": "password123",
+        "displayName": "Bad Combo",
+        "batteryMode": "SWAPPABLE",
+        "batteryType": "SL-48",
+        "connectorType": "GB-AC-48"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("B7 - POST /auth/register rejects invalid batteryMode/type combo with 422 VALIDATION_ERROR", function() {
+          expect(res.status).to.equal(422);
+          expect(res.body.code).to.equal("VALIDATION_ERROR");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

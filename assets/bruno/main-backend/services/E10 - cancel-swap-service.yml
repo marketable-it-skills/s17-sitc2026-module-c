@@ -1,0 +1,28 @@
+info:
+  name: "E10 - cancel-swap-service"
+  type: http
+  seq: 17
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services/{{swapReservedServiceId}}/cancel"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-001
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("E10 - POST /services/{id}/cancel sets SWAP to CANCELLED", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.state).to.equal("CANCELLED");
+          expect(res.body.completedAt).to.be.a("string");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

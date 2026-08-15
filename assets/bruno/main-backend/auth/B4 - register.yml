@@ -1,0 +1,35 @@
+info:
+  name: "B4 - register"
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/register"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "new.rider@swaploop.test",
+        "password": "password123",
+        "displayName": "New Rider",
+        "batteryMode": "SWAPPABLE",
+        "batteryType": "SL-48"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("B4 - POST /auth/register creates SWAPPABLE rider and returns 201 with token", function() {
+          expect(res.status).to.equal(201);
+          expect(res.body.token).to.be.a("string");
+          expect(res.body.token.length).to.be.greaterThan(0);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

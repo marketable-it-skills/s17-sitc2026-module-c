@@ -1,7 +1,7 @@
 info:
-  name: create-swap-for-confirm-conflict
+  name: "E1 - create-swap-service"
   type: http
-  seq: 15
+  seq: 6
 
 http:
   method: POST
@@ -24,9 +24,15 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        test("create reserved swap for confirm-without-start", function() {
+        test("E1 - POST /services creates a RESERVED SWAP hold", function() {
           expect(res.status).to.equal(201);
-          bru.setVar("swapReservedServiceId", res.body.id);
+          expect(res.body.type).to.equal("SWAP");
+          expect(res.body.riderId).to.equal("rider-001");
+          expect(res.body.stationId).to.equal("station-001");
+          expect(res.body.state).to.equal("RESERVED");
+          expect(res.body.unitId).to.be.a("string");
+          expect(res.body.expiresAt).to.be.a("string");
+          bru.setVar("swapServiceId", res.body.id);
         });
 
 settings:

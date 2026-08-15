@@ -1,0 +1,30 @@
+info:
+  name: "E3 - get-service"
+  type: http
+  seq: 8
+
+http:
+  method: GET
+  url: "{{baseUrl}}/services/{{swapServiceId}}"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-001
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("E3 - GET /services/{id} returns the reserved swap for the owner", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.id).to.equal(bru.getVar("swapServiceId"));
+          expect(res.body.type).to.equal("SWAP");
+          expect(res.body.state).to.equal("RESERVED");
+          expect(res.body.riderId).to.equal("rider-001");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

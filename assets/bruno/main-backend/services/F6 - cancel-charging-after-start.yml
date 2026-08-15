@@ -1,0 +1,27 @@
+info:
+  name: "F6 - cancel-charging-after-start"
+  type: http
+  seq: 29
+
+http:
+  method: POST
+  url: "{{baseUrl}}/services/{{cancelChargingServiceId}}/cancel"
+  headers:
+    - name: Authorization
+      value: Bearer sl_tok_rider-002
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("F6 - POST /services/{id}/cancel after charging start returns 409 CONFLICT", function() {
+          expect(res.status).to.equal(409);
+          expect(res.body.code).to.equal("CONFLICT");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

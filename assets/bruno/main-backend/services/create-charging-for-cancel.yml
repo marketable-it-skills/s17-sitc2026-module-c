@@ -1,21 +1,21 @@
 info:
-  name: create-swap-for-confirm-conflict
+  name: create-charging-for-cancel
   type: http
-  seq: 15
+  seq: 27
 
 http:
   method: POST
   url: "{{baseUrl}}/services"
   headers:
     - name: Authorization
-      value: Bearer sl_tok_rider-001
+      value: Bearer sl_tok_rider-002
     - name: Content-Type
       value: application/json
   body:
     type: json
     data: |-
       {
-        "type": "SWAP",
+        "type": "CHARGING",
         "stationId": "station-001"
       }
   auth: inherit
@@ -24,9 +24,11 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        test("create reserved swap for confirm-without-start", function() {
+        test("create CHARGING reservation for cancel-after-start case", function() {
           expect(res.status).to.equal(201);
-          bru.setVar("swapReservedServiceId", res.body.id);
+          expect(res.body.type).to.equal("CHARGING");
+          expect(res.body.state).to.equal("RESERVED");
+          bru.setVar("cancelChargingServiceId", res.body.id);
         });
 
 settings:

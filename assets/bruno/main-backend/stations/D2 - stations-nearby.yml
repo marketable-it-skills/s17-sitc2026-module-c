@@ -1,0 +1,30 @@
+info:
+  name: "D2 - stations-nearby"
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/stations?lat=31.2308&lng=121.4717&radiusMeters=800"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("D2 - GET /stations supports nearby ordering by lat/lng", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body.stations).to.be.an("array");
+          expect(res.body.stations.length).to.be.greaterThan(0);
+          expect(res.body.stations[0].id).to.equal("station-001");
+          expect(res.body.stations[0].distanceMeters).to.equal(0);
+          for (const station of res.body.stations) {
+            expect(station.distanceMeters).to.be.at.most(800);
+          }
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

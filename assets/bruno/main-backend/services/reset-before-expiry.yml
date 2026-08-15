@@ -1,7 +1,7 @@
 info:
-  name: reset-before-charging
+  name: reset-before-expiry
   type: http
-  seq: 18
+  seq: 30
 
 http:
   method: POST
@@ -12,7 +12,7 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        test("Station Service reset DB before charging flow", function() {
+        test("Station Service reset DB before hold-expiry case", function() {
           expect(res.status).to.equal(200);
           expect(res.body.status).to.equal("ok");
         });
