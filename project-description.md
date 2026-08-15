@@ -15,7 +15,7 @@ SwapLoop stations offer:
 
 Some stations provide only one of these services; hybrid stations provide both.
 
-Riders register with an e-bike profile (swappable battery type or integrated connector type), then find a station by list, location, availability, or by scanning the station QR code. At the station they either **swap** a depleted compatible battery for a charged one, or **charge** a bike with a built-in battery in a charging bay. Each visit is a short reservation that the rider starts and completes on site; unfinished holds expire. The network bills **pay-as-you-go** per completed service. The service serves **individual riders** and **delivery couriers** (courier accounts are created by their fleet, not by self-registration).
+Riders register with an e-bike profile (swappable battery type or integrated connector type), then find a station by list, location, availability, or by scanning the station QR code. At the station they either **swap** a depleted compatible battery for a charged one, or **charge** a bike with a built-in battery in a charging bay. Each visit is a short reservation that the rider starts and completes on site; unfinished holds expire. The network bills **pay-as-you-go** per completed service.
 
 The system distinguishes the following physical units:
 
@@ -24,47 +24,43 @@ The system distinguishes the following physical units:
 - A **Battery Swap Cabinet** is the equipment that stores and charges swappable batteries.
 - A **Battery Slot** is a single compartment in a Battery Swap Cabinet.
 
-Currently, there are only two supported swappable battery types and two supported integrated connector types for e-bikes with integrated batteries.
+Currently, there are only two supported swappable battery types and two supported charging connector types for e-bikes with integrated batteries:
+- Swappable battery types: `SL-48` and `SL-60`
+- Charging connector types: `GB-AC-48` and `GB-AC-60`
 
-| `batteryMode` | Battery / Connector Types |
-| ------------- | ------------------------- |
-| `SWAPPABLE`   | `SL-48` \| `SL-60`        |
-| `INTEGRATED`  | `GB-AC-48` \| `GB-AC-60`  |
+In **Module C**, competitors build a **working prototype** of the **Main Backend**, a REST API consumed by the Module D SPA. Business logic for user registration, reservations, last-charge quarantine, live charging simulation orchestration, and pay-as-you-go pricing are implemented here.
 
-In **Module C**, competitors build a **working prototype** of the **Main Backend**—a deterministic REST API consumed by the Module D SPA. Business rules for eligibility, reservation integrity, last-charge quarantine, live charging simulation orchestration, and pay-as-you-go price snapshots are implemented here.
-
-In the overall structure, there is a **Station Service**: a separate technical edge service that stands in for station / cabinet hardware and telemetry. **Station Service** simulates last completed charging-event telemetry for swappable battery packs, and simulated e-bike charging sessions. It is provided for this module. Station Service APIs are **unprotected** (no authentication) and the **Main Backend** is the only application that should call it. (In the intended final setup it is reachable from the Main Backend over a secure private network link, so public clients never see it.)
+In the overall architecture, there is a **Station Service**: a separate internal service that stands in for station / cabinet hardware and telemetry. **Station Service** simulates e-bike charging sessions and last completed charging-event telemetry for swappable battery packs. It is provided for this module, competitors do not need to implement it. Station Service APIs are **unprotected**, only to be called by the **Main Backend**.
 
 ![SwapLoop Infrastructure](./assets/project-description-images/swaploop-infra.png)
 
 ## General Description of Project and Tasks
 
-Implement an independently runnable Main Backend so that later frontend modules can use it without reproducing backend business rules. The following is a high-level overview; detailed specifications are in the [Requirements](#requirements) section:
+Implement the Main Backend with the described endpoints and business logic. The following is a high-level overview; detailed specifications are in the [Requirements](#requirements) section:
 
 - implement authentication and authorization (opaque bearer tokens)
-- implement error handling with consistent machine-readable codes
-- serve station discovery (list, filters, detail, compatibility, optional rider availability)
-- implement unified **services** for swap and charging (short holds and state machines)
+- implement consistent error handling
+- list and filter available stations (list, filters, detail, compatibility, optional rider availability)
+- implement unified services for swap and charging
 - enforce last-charge safety via Station Service before swap reservation
-- start Station Service bike-bay charging sessions and expose their telemetry
-- snapshot pay-as-you-go prices on confirm/collect and expose the price catalog
-- restore the canonical seed when needed by calling Station Service `POST /reset`
+- start Station Service charging bay sessions and expose their telemetry
+- apply pay-as-you-go prices on confirm/collect and expose the price catalog
 
 ### Environment and provided assets
 
 Build the API with a server-side language and framework available in the competition environment.
 
-- Use **MySQL** for persistence. Import [`assets/db/swaploop_db.sql`](./assets/db/swaploop_db.sql) .
-- Implement the API according to [`assets/api/main-backend.openapi.yaml`](./assets/api/main-backend.openapi.yaml). That document is the authoritative contract for paths, requests, responses, security, and errors. Offline Swagger UI: [`assets/api/main-backend-docs/index.html`](./assets/api/main-backend-docs/index.html).
+- Use **MySQL** for persistence. Import [`assets/db/swaploop_db.sql`](./assets/db/swaploop_db.sql).
+- Implement the API according to [`assets/api/main-backend.openapi.yaml`](./assets/api/main-backend.openapi.yaml). That document is the contract for paths, requests, responses, security, and errors. Response and request schemas, response status codes and error codes must match the OpenAPI contract exactly. Offline Swagger UI: [`assets/api/main-backend-docs/index.html`](./assets/api/main-backend-docs/index.html).
 - A Bruno / OpenCollection suite for the **Main Backend** is provided under [`assets/bruno/main-backend`](./assets/bruno/main-backend).
-- Call the provided **Station Service** at `https://cXX-YYYY-station-service.sitc.skillsit.eu` (replace `cXX` / `YYYY` with your competition username and PIN). Its API is unprotected; only your Main Backend should use it for telemetry and live charging. See [`assets/api/station-service-openapi.yaml`](./assets/api/station-service-openapi.yaml), the offline Swagger UI at [`assets/api/station-service-docs/index.html`](./assets/api/station-service-docs/index.html), and the Station Service Bruno suite under [`assets/bruno/station-service`](./assets/bruno/station-service).
+- Access the provided **Station Service** at `https://cXX-YYYY-station-service.sitc.skillsit.eu` (replace `cXX` / `YYYY` with your competition username and PIN). Its API is unprotected. See [`assets/api/station-service-openapi.yaml`](./assets/api/station-service-openapi.yaml), the offline Swagger UI at [`assets/api/station-service-docs/index.html`](./assets/api/station-service-docs/index.html), and the Station Service Bruno suite under [`assets/bruno/station-service`](./assets/bruno/station-service).
 - **Database reset:** To reload the Module C MySQL seed (`assets/db/swaploop_db.sql`), call Station Service `POST https://cXX-YYYY-station-service.sitc.skillsit.eu/reset`. No authentication is required. Assessors and the provided Bruno suites use this endpoint the same way.
 
-All Main Backend API paths in this document are relative to `/api/v1` on whatever host you run (for example `POST /auth/login` means `POST {baseUrl}/api/v1/auth/login`). Use your local development URL while building; during assessment, the deployed Main Backend is available at `https://cXX-YYYY-module-c.sitc.skillsit.eu` (replace `cXX` / `YYYY` with your competition username and PIN).
+All Main Backend API paths in this document are relative to `/api/v1` on whatever host you run (for example `POST /auth/login` means `POST {baseUrl}/api/v1/auth/login`). Your deployed Main Backend is available at `https://cXX-YYYY-module-c.sitc.skillsit.eu` (replace `cXX` / `YYYY` with your competition username and PIN).
 
 ### Database structure
 
-Competitors must use the supplied dump. Do **not** invent a parallel schema that breaks the OpenAPI contract. The competition seed uses these tables:
+Use the provided database seed (`assets/db/swaploop_db.sql`) as-is. You do not need to change the schema of any table. The following diagram shows the tables of the database:
 
 ```mermaid
 erDiagram
@@ -149,17 +145,16 @@ erDiagram
 
 | Table             | Description                                                                                           |
 | ----------------- | ----------------------------------------------------------------------------------------------------- |
-| **users**         | Riders. Opaque `api_token`. Mode-driven vehicle profile. SWAPPABLE riders track `current_battery_id`. |
-| **stations**      | Discoverable locations (`SWAP` / `CHARGING` / `HYBRID`) with lifecycle and geo fields.                |
+| **users**         | Registered riders with their bike's details. SWAPPABLE riders track `current_battery_id`. |
+| **stations**      | Discoverable locations (`SWAP` / `CHARGING` / `HYBRID`) with state and location                |
 | **station_units** | `SWAP_BAY` (Battery Slot) or `BIKE_BAY` (E-bike Charging Bay) with state and compatibility fields.    |
-| **services**      | Single lifecycle row for swap or charging; price snapshot columns filled at finish.                   |
+| **services**      | Single lifecycle row for a single swap or charging; price columns filled at finish.                   |
 | **price_list**    | Active PAYG catalog in whole CNY.                                                                     |
 
 ### Technical constraints
 
 - Return JSON for all normal and error responses.
 - Use `Asia/Shanghai` as the business timezone. Return timestamps as ISO 8601 strings with an explicit offset.
-- Real payment processing, real IoT integration, route optimization, native mobile apps, machine learning, and battery chemistry simulation are out of scope.
 
 ## Requirements
 
@@ -196,7 +191,7 @@ Example:
 
 #### General rules for the API
 
-- Dynamic data must come from MySQL (and Station Service where specified).
+- Dynamic data must come from the database (and Station Service where specified).
 - Placeholder parameters in the URL are marked with a preceding colon (e.g. `:stationId`).
 - Property order in objects does not matter; array order matters where specified (e.g. nearest-first stations).
 - `Content-Type` of JSON responses is `application/json`.
@@ -221,7 +216,7 @@ Public liveness probe. No authentication required.
 
 #### Authentication and authorization
 
-The Main Backend uses **opaque** bearer tokens. Store each token in the `api_token` column of the `users` table (no sessions table, no JWT).
+The Main Backend uses **opaque** bearer tokens. Store each token in the `api_token` column of the `users` table (no sessions table, no JWT). Create tokens with a secure random generator.
 
 1. `POST /auth/login` and `POST /auth/register` verify or create the user and return `{ "token": "..." }` only.
 2. Clients send `Authorization: Bearer <token>` on protected routes.
@@ -232,7 +227,21 @@ The Main Backend uses **opaque** bearer tokens. Store each token in the `api_tok
 
 ##### POST /auth/register
 
-Public. Creates a `RIDER` / `ACTIVE` account with a mode-driven vehicle profile and returns a new opaque token. A user can register an account provide an electric bike profile (`SWAPPABLE` + `batteryType` `SL-48` \| `SL-60` or `INTEGRATED` + `connectorType` `GB-AC-48` \| `GB-AC-60`). The `voltageClass` (`48V` / `60V`) is derived from the selected type; it is not a separate field.
+No authentication required. Creates a new account with bike details.
+
+A user can register an account by providing the electric bike profile:
+-  `batteryMode`: `SWAPPABLE` and `batteryType`: `SL-48` \| `SL-60`, or
+-  `batteryMode`: `INTEGRATED` and `connectorType` `GB-AC-48` \| `GB-AC-60`.
+
+Reject invalid mode/type combinations with `422`.
+Reject duplicate email with `409 CONFLICT`.
+
+Store the password as a bcrypt hash in `password_hash`. Return the new user's opaque `api_token`.
+
+The created user's role is `RIDER` and status is `ACTIVE`.
+
+The `voltageClass` (`48V` / `60V`) is derived from the selected type; it is not a separate field.
+
 
 **Request example (swappable):**
 
@@ -266,18 +275,11 @@ Public. Creates a `RIDER` / `ACTIVE` account with a mode-driven vehicle profile 
 }
 ```
 
-**Behaviour (summary):**
-
-- `SWAPPABLE` requires `batteryType`; omit `connectorType`; assign an initial `current_battery_id` for the new rider.
-- `INTEGRATED` requires `connectorType`; omit `batteryType`; `current_battery_id` stays null.
-- Reject invalid mode/type combinations with `422`.
-- Duplicate email → `409`.
-
 ---
 
 ##### POST /auth/login
 
-Public. Verifies email + password against bcrypt `password_hash`. Returns the user’s opaque `api_token`.
+No authentication required. Verifies email + password against bcrypt `password_hash`. Store and return the user's opaque `api_token` on successful login. Suspended users cannot log in.
 
 Seeded users:
 
@@ -315,7 +317,7 @@ Plaintext password for all seeded users: `password123`.
 
 ##### GET /me
 
-Protected. Returns the authenticated public profile (no password or token). Includes derived `voltageClass`.
+Protected. Returns the authenticated user's public profile (no password or token must be returned in the response). Includes derived `voltageClass`.
 
 **Response:** `200 OK`
 
@@ -341,7 +343,7 @@ Protected. Returns the authenticated public profile (no password or token). Incl
 
 ##### PATCH /me
 
-Protected. Partial update of `displayName` and/or vehicle profile (same validation rules as register).
+Protected. Partial update of `displayName` and/or bike details ( `batteryMode`, `batteryType`, `connectorType`) with same validation rules as register endpoint.
 
 **Response:** `200 OK` — updated public user object.
 
@@ -351,10 +353,10 @@ Protected. Partial update of `displayName` and/or vehicle profile (same validati
 
 ##### GET /me/activity
 
-Protected. Returns the rider’s Activity snapshot for the SPA:
+Protected. Returns the rider's current and past activities.
 
 - **`active`** — the current in-progress service, or `null` if none. Active means non-terminal states (`RESERVED`, `STARTED`, `CHARGING`, `READY_FOR_COLLECTION`). If the only candidate is `RESERVED` with `expiresAt` ≤ now, expire it first (service → `EXPIRED`; `SWAP_BAY`: `RESERVED` → `READY`; `BIKE_BAY`: `RESERVED` → `AVAILABLE`) and return `"active": null`.
-- **`recent`** — up to **5** of the rider’s services in a **terminal** state (`CONFIRMED`, `COLLECTED`, `EXPIRED`, `CANCELLED`, `SAFETY_CUTOFF`), newest first (order by `completedAt`, then `expiresAt`, then `createdAt`). This is a count limit, not a time window.
+- **`recent`** — show up to 5 of the rider’s past services in a terminal state (`CONFIRMED`, `COLLECTED`, `EXPIRED`, `CANCELLED`, `SAFETY_CUTOFF`), newest first (order by `completedAt`, then `expiresAt`, then `createdAt`).
 
 **Response:** `200 OK`
 
@@ -401,7 +403,7 @@ Protected. Returns the rider’s Activity snapshot for the SPA:
 }
 ```
 
-When there is no active service and no history, return `"active": null` and `"recent": []`. Finished services include snapshotted `priceYuan` / `priceCode` when priced.
+When there is no active service and no history, return `"active": null` and `"recent": []`. Finished services include the `priceYuan` / `priceCode`.
 
 ---
 
@@ -409,7 +411,9 @@ When there is no active service and no history, return `"active": null` and `"re
 
 ##### GET /stations
 
-Public. Optional bearer token adds per-station `riderAvailability`.
+List stations with optional filters. Sort nearest-first when `lat` / `lng` are provided; otherwise sort by `name`. Include `distanceMeters` when `lat` / `lng` are provided.
+
+No authentication required, but authenticated requests must also include `riderAvailability` for each station (see below).
 
 **Query parameters:**
 
@@ -448,12 +452,31 @@ Suspended stations remain discoverable in unfiltered lists but must not offer re
 }
 ```
 
-With bearer token, each station may also include:
+With bearer token, each station must also include `riderAvailability` computed for the authenticated rider:
 
 ```json
-"riderAvailability": {
-  "compatibleReadyBattery": true,
-  "compatibleChargingBay": false
+{
+  "stations": [
+    {
+      "id": "station-001",
+      "name": "Haitang Garden East Gate",
+      "type": "HYBRID",
+      "lifecycleState": "ACTIVE",
+      "latitude": 31.2308,
+      "longitude": 121.4717,
+      "address": "88 Haitang Community Road",
+      "compatibility": {
+        "services": ["SWAP", "BIKE_BAY"],
+        "batteryTypes": ["SL-48", "SL-60"],
+        "connectorTypes": ["GB-AC-48"],
+        "voltageClasses": ["48V", "60V"]
+      },
+      "riderAvailability": {
+        "compatibleReadyBattery": true,
+        "compatibleChargingBay": false
+      }
+    }
+  ]
 }
 ```
 
@@ -461,7 +484,8 @@ With bearer token, each station may also include:
 
 ##### GET /stations/:stationId
 
-Public. Station detail with compatibility. Optional bearer adds `riderAvailability`.
+Station details with compatibility.
+No authentication required, but authenticated requests must also include `riderAvailability` for the station, with the same structure and logic as for listing stations.
 
 **Response:** `200 OK` — station object as above (single resource, not wrapped in `stations`).
 
@@ -472,21 +496,23 @@ Public. Station detail with compatibility. Optional bearer adds `riderAvailabili
 #### Services
 
 The unified services (swap and charging) stored in one `services` row owns the full lifecycle (`type` `SWAP` \| `CHARGING` plus type-specific `state`).
-**Swap states:** `RESERVED` → `STARTED` (`/start`) → `CONFIRMED` (`/confirm`). Cancel from `RESERVED` or `STARTED`.
-**Charging states:** `RESERVED` → `CHARGING` (`/start`) → `READY_FOR_COLLECTION` (auto via `/charging-status`) → `COLLECTED` (`/collect`). Cancel only from `RESERVED`.
+Each service usage (swap or charging) is stored in the `services` table (type: `SWAP` or `CHARGING`) with type-specific current state.
+
+**States for `SWAP`:** `RESERVED` → `STARTED` (`/start`) → `CONFIRMED` (`/confirm`). Cancel available from `RESERVED` or `STARTED`.
+**States for `CHARGING`:** `RESERVED` → `CHARGING` (`/start`) → `READY_FOR_COLLECTION` (auto via `/charging-status`) → `COLLECTED` (`/collect`). Cancel only available from `RESERVED`.
 
 Transitions are safe to retry: if a transition already succeeded, calling it again returns the current service and must not apply the change a second time.
 
 ##### POST /services
 
-Protected. Creates a **10-second** reservation hold (`expiresAt` = now + **10 seconds**), so expiry can be tested during marking. A real-world deployment would use a much longer hold (typically **15–30 minutes**).
+Protected. Creates a **10-second** reservation hold (`expiresAt` = now + **10 seconds**). (Note: The short period is for testing purposes, a real-world deployment would use a much longer hold, typically **15–30 minutes**.)
 
 A rider may have only one active service at a time. Creating another service while one is still active returns `409`.
 
-**Behaviour (summary):**
+**Behaviour:**
 
-- `SWAP`: rider must be `SWAPPABLE` with `batteryType`. Atomically reserve one READY matching `SWAP_BAY`. Before accepting a pack, evaluate last-charge telemetry (see **Battery safety via Station Service** below); quarantine/skip unsafe or `NO_TELEMETRY` packs and try the next candidate.
-- `CHARGING`: rider must be `INTEGRATED` with `connectorType`. Atomically reserve one AVAILABLE matching `BIKE_BAY`.
+- `SWAP`: rider must be `SWAPPABLE` as `batteryType`. Atomically reserve one `READY` matching `SWAP_BAY`. Before accepting a pack, evaluate last-charge telemetry (see **Battery safety via Station Service** below); quarantine/skip unsafe or `NO_TELEMETRY` packs and try the next candidate.
+- `CHARGING`: rider must be `INTEGRATED` as `batteryType`. Atomically reserve one AVAILABLE matching `BIKE_BAY`.
 - One active service per rider. Before enforcing that rule, expire any of the rider’s overdue `RESERVED` holds (`expiresAt` ≤ now → service `EXPIRED`; `SWAP_BAY`: `RESERVED` → `READY`; `BIKE_BAY`: `RESERVED` → `AVAILABLE`) so a timed-out hold does not block a new create.
 - Set `expiresAt` to **now + 10 seconds** on the created service. (Later actions such as `POST /services/:serviceId/start` check `expiresAt`.)
 
@@ -498,14 +524,14 @@ Before reserving a swappable pack, the Main Backend must call Station Service:
 GET {STATION_SERVICE}/api/batteries/{batteryId}/last-charging-telemetry
 ```
 
-Station Service returns raw samples only (`time`, `temperature`, `chargingVoltage`). **Quarantine decisions belong to the Main Backend.** Station Service does not quarantine packs.
+Station Service returns raw telemetry samples (`time`, `temperature`, `chargingVoltage`) of the battery's last charging session. **Quarantine decisions belong to the Main Backend.**
 
 Refuse the pack (quarantine the bay / return `409 CONFLICT`) if **either** rule fails:
 
-1. **Spike** — any sample has `temperature > 55`.
-2. **Sustained heat** — a contiguous sample sequence where `time(last) − time(first) ≥ 5 minutes` and the arithmetic mean of those temperatures is `> 50`. A single hot reading alone does not satisfy Rule 2.
+1. **Spike**: any sample has `temperature > 55`.
+2. **Sustained heat**: a contiguous sample sequence where `time(last) − time(first) ≥ 5 minutes` and the arithmetic mean of those temperatures is `> 50`. A single hot reading alone does not satisfy Rule 2.
 
-A known battery with empty samples → Station Service `404 NO_TELEMETRY`. Do **not** treat that as healthy. Unsafe or `NO_TELEMETRY` packs must not be offered for swap.
+For a known battery with empty samples, Station Service returns `404 NO_TELEMETRY`. Do **not** treat that as healthy. Unsafe or `NO_TELEMETRY` packs must not be offered for swap.
 
 Seeded fixtures:
 
@@ -563,9 +589,9 @@ Protected. Owner only may read the service.
 
 ##### POST /services/:serviceId/start
 
-Protected. Owner only.
+Protected, allowed only for the service's owner.
 
-If the service is still `RESERVED` and `expiresAt` ≤ now: set the service to `EXPIRED`, return the unit (in the `station_units` table: `SWAP_BAY`: `RESERVED` → `READY`; `BIKE_BAY`: `RESERVED` → `AVAILABLE`), and return `409` (hold expired). Do not start an overdue hold.
+If the service is still `RESERVED` and `expiresAt` ≤ now: set the service to `EXPIRED`, return the unit (in the `station_units` table: `SWAP_BAY`: `RESERVED` → `READY`; `BIKE_BAY`: `RESERVED` → `AVAILABLE`), and return `409` (hold expired). An overdue hold cannot be started.
 
 **SWAP:**
 `RESERVED` → `STARTED` (simulated locker open). If the service is already `STARTED`, return it unchanged with `200` (do not fail and do not start again).
@@ -581,9 +607,9 @@ When a rider starts a `CHARGING` service, the Main Backend must start a Station 
 
 ##### GET /services/:serviceId/charging-status
 
-Protected. Owner only. For `CHARGING` services. This is the endpoint that exposes live bike-bay charging telemetry to the SPA. Poll about once per second while the service is `CHARGING`.
+Protected. Owner only. For `CHARGING` services. Exposes live bike-bay charging telemetry.
 
-**Behaviour (summary):**
+**Behaviour:**
 
 - Call Station Service `GET {STATION_SERVICE}/api/bike-bays/{unitId}/charging/sessions/current` using the service’s `unitId`.
 - Return `{ service, charging }` where `charging` includes at least `status` (`CHARGING` \| `COMPLETED`), `startedAt`, `endsAt`, and `samples` (`socPercent`, `chargingPowerKw`, `temperature`) from Station Service.
@@ -619,13 +645,13 @@ Protected. Owner only. For `CHARGING` services. This is the endpoint that expose
 
 ##### POST /services/:serviceId/confirm
 
-Protected. Owner only. Swap only: `STARTED` → `CONFIRMED`.
+Protected. Owner only. Swap only. Move state `STARTED` → `CONFIRMED`.
 
-On successful swap **confirm**, look up the matching active row in the `price_list` table from the rider’s `batteryType`, and in the same transaction copy the amounts into the service row’s `price_yuan` and `price_code` columns (JSON responses expose these as `priceYuan` / `priceCode`). Receipts use those snapshotted service fields.
+On successful swap confirm, look up the matching active row in the `price_list` table from the rider’s `batteryType`, and in the same transaction copy the amounts into the service row’s `price_yuan` and `price_code` columns.
 
-**Behaviour (summary):**
+**Behaviour:**
 
-- Inventory exchange: bay goes `CHARGING` holding the rider’s previous pack (`batteryInId`); rider `currentBatteryId` becomes `batteryOutId`.
+- Bay goes `CHARGING` holding the rider’s previous pack (`batteryInId`); rider `currentBatteryId` becomes `batteryOutId`.
 - Snapshot PAYG `priceYuan` / `priceCode` from `price_list` (e.g. SL-48 → `5` / `SWAP_SL-48`).
 - Confirm from `RESERVED` alone must fail (`409`).
 
@@ -635,9 +661,9 @@ On successful swap **confirm**, look up the matching active row in the `price_li
 
 ##### POST /services/:serviceId/collect
 
-Protected. Owner only. Charging: `READY_FOR_COLLECTION` → `COLLECTED`. Snapshot PAYG price; best-effort clear Station Service session; release bay to `AVAILABLE`.
+Protected. Owner only. Charging: move state `READY_FOR_COLLECTION` → `COLLECTED`. Snapshot PAYG price; best-effort clear Station Service session; release bay to `AVAILABLE`.
 
-On successful charging **collect**, look up the matching active row in the `price_list` table from the rider’s `connectorType`, and in the same transaction copy the amounts into the service row’s `price_yuan` and `price_code` columns (JSON responses expose these as `priceYuan` / `priceCode`). Receipts use those snapshotted service fields.
+On successful charging collect, look up the matching active row in the `price_list` table from the rider’s `connectorType`, and in the same transaction copy the amounts into the service row’s `price_yuan` and `price_code` columns.
 
 **Response:** `200 OK` — Service with `state` `COLLECTED` and prices set (e.g. GB-AC-48 → `3` / `CHARGE_GB-AC-48`).
 
@@ -648,7 +674,7 @@ On successful charging **collect**, look up the matching active row in the `pric
 Protected. Owner only.
 
 - If the service is still `RESERVED` and `expiresAt` ≤ now: set the service to `EXPIRED`, return the unit (`SWAP_BAY`: `RESERVED` → `READY`; `BIKE_BAY`: `RESERVED` → `AVAILABLE`), and return `409` (already expired — nothing left to cancel).
-- Swap: cancel from `RESERVED` or `STARTED` (no inventory exchange).
+- Swap: cancel from `RESERVED` or `STARTED`.
 - Charging: cancel only from `RESERVED`.
 
 **Response:** `200 OK` — Service with `state` `CANCELLED` and `completedAt`.
