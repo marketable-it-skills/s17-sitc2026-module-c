@@ -16,6 +16,7 @@
 const { spawnSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+const readline = require('node:readline');
 
 const LABEL_RE = /^([A-G]\d+)\s*-\s*/;
 const COLLECTION_ROOT = path.resolve(__dirname, '..');
@@ -27,6 +28,70 @@ const DEFAULT_MARKING = path.resolve(
   'marking',
   'marking-scheme.json',
 );
+
+const COMPETITORS_JSON = path.resolve(__dirname, 'competitors.json');
+const ENV_YML = path.resolve(__dirname, '..', 'environments', 'swaploop-module-c-local.yml');
+
+/**
+ * Interactively prompt the user to pick a competitor.
+ * Returns the selected competitor object (or null if skipped).
+ */
+async function selectCompetitor() {
+  if (!fs.existsSync(COMPETITORS_JSON)) {
+    console.warn(`competitors.json not found at ${COMPETITORS_JSON} — skipping competitor selection.`);
+    return null;
+  }
+
+  const competitors = JSON.parse(fs.readFileSync(COMPETITORS_JSON, 'utf8'));
+  if (!Array.isArray(competitors) || competitors.length === 0) return null;
+
+  console.log('\nCompetitors:');
+  competitors.forEach((c, i) => {
+    console.log(`  [${i + 1}] ${c.username}  ${c.name}  (${c.country})`);
+  });
+  console.log(`  [0] Skip / use current environment as-is`);
+  console.log('');
+
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const answer = await new Promise((resolve) => {
+    rl.question('Select competitor number: ', (a) => { rl.close(); resolve(a.trim()); });
+  });
+
+  const idx = parseInt(answer, 10);
+  if (!answer || isNaN(idx) || idx === 0) return null;
+  if (idx < 1 || idx > competitors.length) {
+    console.warn(`Invalid selection "${answer}" — skipping competitor selection.`);
+    return null;
+  }
+  return competitors[idx - 1];
+}
+
+/**
+ * Update swaploop-module-c-local.yml so that:
+ *   baseUrl              → https://<un>-<pw>-module-c-solution.sitc.skillsit.eu/api/v1
+ *   stationServiceBaseUrl → https://<un>-<pw>-station-service.sitc.skillsit.eu
+ */
+function updateEnvYml(competitor) {
+  const { username: un, pin: pw } = competitor;
+  const baseUrl = `https://${un}-${pw}-module-c-solution.sitc.skillsit.eu/api/v1`;
+  const stationUrl = `https://${un}-${pw}-station-service.sitc.skillsit.eu`;
+
+  let yml = fs.readFileSync(ENV_YML, 'utf8');
+
+  // Replace only the two active URL variables (not the *Deployment variants)
+  yml = yml.replace(
+    /(- name: baseUrl\s*\n\s*value: )(\S+)/,
+    `$1${baseUrl}`,
+  );
+  yml = yml.replace(
+    /(- name: stationServiceBaseUrl\s*\n\s*value: )(\S+)/,
+    `$1${stationUrl}`,
+  );
+
+  fs.writeFileSync(ENV_YML, yml, 'utf8');
+  console.log(`Updated env → baseUrl: ${baseUrl}`);
+  console.log(`Updated env → stationServiceBaseUrl: ${stationUrl}`);
+}
 
 function parseArgs(argv) {
   const opts = {
@@ -435,6 +500,135 @@ function toMarkdown(report) {
   return lines.join('\n');
 }
 
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function statusBadge(status) {
+  const colors = { pass: '#22c55e', fail: '#ef4444', missing: '#f59e0b', excluded: '#a3a3a3', skipped: '#a3a3a3' };
+  const bg = colors[status] || '#a3a3a3';
+  return `<span style="background:${bg};color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">${escHtml(status)}</span>`;
+}
+
+function wsosLabel(section) {
+  const names = {
+    1: 'Work Organization & Management',
+    2: 'Communication & Interpersonal Skills',
+    3: 'Design Implementation',
+    4: 'Front-End Development',
+    5: 'Back-End Development',
+  };
+  return names[section] || `Section ${section}`;
+}
+
+function toHtml(report, title) {
+  const s = report.summary;
+  const pct = s.marksPossible > 0 ? ((s.marksAvailable / s.marksPossible) * 100).toFixed(1) : '0.0';
+  const dur = report.meta.durationMs >= 1000
+    ? (report.meta.durationMs / 1000).toFixed(1) + 's'
+    : report.meta.durationMs + 'ms';
+  const excluded = report.meta.exclude?.length ? ` &bull; Excluded: ${escHtml(report.meta.exclude.join(', '))}` : '';
+
+  const lines = [];
+  lines.push(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Marking Report – ${escHtml(title)}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; padding: 24px; line-height: 1.5; }
+  h1 { font-size: 1.6rem; margin-bottom: 4px; }
+  .meta { color: #64748b; font-size: 0.85rem; margin-bottom: 20px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .card { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-align: center; }
+  .card .num { font-size: 1.8rem; font-weight: 700; }
+  .card .label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+  .card.pass .num { color: #22c55e; }
+  .card.fail .num { color: #ef4444; }
+  .card.marks .num { color: #2563eb; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 24px; }
+  th { background: #f1f5f9; text-align: left; padding: 10px 12px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.4px; color: #475569; }
+  td { padding: 8px 12px; border-top: 1px solid #f1f5f9; font-size: 0.85rem; vertical-align: top; }
+  tr.group-header td { background: #f8fafc; font-weight: 600; font-size: 0.9rem; padding: 12px; border-top: 2px solid #e2e8f0; }
+  tr.aspect.fail { background: #fef2f2; }
+  .id { font-weight: 700; white-space: nowrap; }
+  .mark { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .desc { max-width: 340px; }
+  .tests { font-size: 0.78rem; color: #475569; }
+  .test.fail { color: #dc2626; }
+  .err { color: #dc2626; font-style: italic; }
+  h2 { font-size: 1.1rem; margin: 24px 0 8px; }
+  .progress-bar { height: 8px; border-radius: 4px; background: #e2e8f0; overflow: hidden; margin-bottom: 24px; }
+  .progress-bar .fill { height: 100%; background: #22c55e; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>Marking Report – ${escHtml(title)}</h1>
+<p class="meta">${escHtml(report.meta.timestamp)} &bull; env: ${escHtml(report.meta.env)} &bull; Bruno ${escHtml(report.meta.bruVersion || 'unknown')} &bull; ${dur}${excluded}</p>
+
+<div class="progress-bar"><div class="fill" style="width:${pct}%"></div></div>
+
+<div class="summary-grid">
+  <div class="card marks"><div class="num">${s.marksAvailable} / ${s.marksPossible}</div><div class="label">Marks (of ${s.totalMarkDeclared})</div></div>
+  <div class="card pass"><div class="num">${s.aspectsPass}</div><div class="label">Pass</div></div>
+  <div class="card fail"><div class="num">${s.aspectsFail}</div><div class="label">Fail</div></div>
+  <div class="card"><div class="num">${s.aspectsMissing}</div><div class="label">Missing</div></div>
+  <div class="card"><div class="num">${s.aspectsExcluded}</div><div class="label">Excluded</div></div>
+  <div class="card"><div class="num">${s.requests}</div><div class="label">Requests</div></div>
+</div>
+
+<h2>Aspects</h2>
+<table>
+<thead><tr><th>ID</th><th>Status</th><th>Marks</th><th>Description</th><th>Tests</th></tr></thead>
+<tbody>`);
+
+  let lastSub = '';
+  for (const a of report.aspects) {
+    if (a.subCriterion !== lastSub) {
+      lastSub = a.subCriterion;
+      lines.push(`<tr class="group-header"><td colspan="5">${escHtml(a.subCriterion)} <small>(WSOS ${a.wsosSection} – ${escHtml(wsosLabel(a.wsosSection))})</small></td></tr>`);
+    }
+    const earnedMark = a.status === 'pass' ? a.maxMark : 0;
+    const testsHtml = a.tests && a.tests.length
+      ? a.tests.map((t) => `<div class="test ${t.status}">${escHtml(t.description)}</div>`).join('')
+      : '<em>—</em>';
+    lines.push(`<tr class="aspect ${a.status}">
+      <td class="id">${escHtml(a.id)}</td>
+      <td>${statusBadge(a.status)}</td>
+      <td class="mark">${earnedMark} / ${a.maxMark}</td>
+      <td class="desc">${escHtml(a.description)}</td>
+      <td class="tests">${testsHtml}</td>
+    </tr>`);
+  }
+
+  lines.push(`
+</tbody>
+</table>
+
+`);
+
+  const fails = report.aspects.filter((a) => a.status === 'fail' || a.status === 'missing');
+  if (fails.length) {
+    lines.push('<h2>Failures / Missing</h2>');
+    for (const a of fails) {
+      lines.push(`<div style="margin:12px 0;padding:12px;background:#fef2f2;border-radius:6px;border-left:4px solid #ef4444;">
+  <strong>${escHtml(a.id)}</strong> — ${escHtml(a.status)}<br>
+  ${escHtml(a.description)}${a.error ? `<br><code class="err">${escHtml(a.error)}</code>` : ''}
+</div>`);
+    }
+  }
+
+  lines.push(`
+</body>
+</html>`);
+  return lines.join('\n');
+}
+
 function bruVersion() {
   const r = spawnSync('bru', ['--version'], { encoding: 'utf8', shell: true });
   return (r.stdout || r.stderr || '').trim() || null;
@@ -491,11 +685,21 @@ function runBruno({ env, outDir, sandbox, excludeIds }) {
   };
 }
 
-function main() {
+async function main() {
   const opts = parseArgs(process.argv.slice(2));
   if (opts.help) {
     printHelp();
     process.exit(0);
+  }
+
+  // Competitor selection — runs unless --out was explicitly supplied
+  const outExplicit = process.argv.slice(2).includes('--out');
+  const competitor = outExplicit ? null : await selectCompetitor();
+  if (competitor) {
+    updateEnvYml(competitor);
+    // Place reports in a subfolder named by the competitor's username
+    opts.out = path.join(COLLECTION_ROOT, 'reports', competitor.username);
+    console.log(`Reports will be written to: ${opts.out}\n`);
   }
 
   if (!fs.existsSync(opts.marking)) {
@@ -539,12 +743,16 @@ function main() {
 
   const jsonOut = path.join(opts.out, 'marking-report.json');
   const mdOut = path.join(opts.out, 'marking-report.md');
+  const htmlOut = path.join(opts.out, 'marking-report.html');
+  const reportTitle = competitor ? competitor.username : path.basename(opts.out);
   fs.writeFileSync(jsonOut, JSON.stringify(report, null, 2));
   fs.writeFileSync(mdOut, toMarkdown(report));
+  fs.writeFileSync(htmlOut, toHtml(report, reportTitle));
 
   console.log('');
   console.log(`Wrote ${jsonOut}`);
   console.log(`Wrote ${mdOut}`);
+  console.log(`Wrote ${htmlOut}`);
   console.log(
     `Aspects: ${report.summary.aspectsPass} pass, ${report.summary.aspectsFail} fail, ${report.summary.aspectsMissing} missing, ${report.summary.aspectsExcluded} excluded`,
   );
@@ -557,4 +765,4 @@ function main() {
   process.exit(hardFail ? 1 : 0);
 }
 
-main();
+main().catch((err) => { console.error(err); process.exit(1); });

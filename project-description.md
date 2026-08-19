@@ -25,6 +25,7 @@ The system distinguishes the following physical units:
 - A **Battery Slot** is a single compartment in a Battery Swap Cabinet.
 
 Currently, there are only two supported swappable battery types and two supported charging connector types for e-bikes with integrated batteries:
+
 - Swappable battery types: `SL-48` and `SL-60`
 - Charging connector types: `GB-AC-48` and `GB-AC-60`
 
@@ -143,13 +144,13 @@ erDiagram
 
 #### Table descriptions
 
-| Table             | Description                                                                                           |
-| ----------------- | ----------------------------------------------------------------------------------------------------- |
-| **users**         | Registered riders with their bike's details. SWAPPABLE riders track `current_battery_id`. |
-| **stations**      | Discoverable locations (`SWAP` / `CHARGING` / `HYBRID`) with state and location                |
-| **station_units** | `SWAP_BAY` (Battery Slot) or `BIKE_BAY` (E-bike Charging Bay) with state and compatibility fields.    |
-| **services**      | Single lifecycle row for swap or charging; price columns filled at finish.                   |
-| **price_list**    | Pay-as-you-go prices for each service type (swap / charge), stored as whole yuan amounts.             |
+| Table             | Description                                                                                        |
+| ----------------- | -------------------------------------------------------------------------------------------------- |
+| **users**         | Registered riders with their bike's details. SWAPPABLE riders track `current_battery_id`.          |
+| **stations**      | Discoverable locations (`SWAP` / `CHARGING` / `HYBRID`) with state and location                    |
+| **station_units** | `SWAP_BAY` (Battery Slot) or `BIKE_BAY` (E-bike Charging Bay) with state and compatibility fields. |
+| **services**      | Single lifecycle row for swap or charging; price columns filled at finish.                         |
+| **price_list**    | Pay-as-you-go prices for each service type (swap / charge), stored as whole yuan amounts.          |
 
 ### Technical constraints
 
@@ -230,8 +231,9 @@ The Main Backend uses **opaque** bearer tokens. Store each token in the `api_tok
 No authentication required. Creates a new account with bike details.
 
 A user can register an account by providing the electric bike profile:
--  `batteryMode`: `SWAPPABLE` and `batteryType`: `SL-48` \| `SL-60`, or
--  `batteryMode`: `INTEGRATED` and `connectorType` `GB-AC-48` \| `GB-AC-60`.
+
+- `batteryMode`: `SWAPPABLE` and `batteryType`: `SL-48` \| `SL-60`, or
+- `batteryMode`: `INTEGRATED` and `connectorType` `GB-AC-48` \| `GB-AC-60`.
 
 Reject invalid mode/type combinations with `422`.
 Reject duplicate email with `409 CONFLICT`.
@@ -241,7 +243,6 @@ Store the password as a bcrypt hash in `password_hash`. Return the new user's op
 The created user's role is `RIDER` and status is `ACTIVE`.
 
 The `voltageClass` (`48V` / `60V`) is derived from the selected type; it is not a separate field.
-
 
 **Request example (swappable):**
 
@@ -411,7 +412,7 @@ When there is no active service and no history, return `"active": null` and `"re
 
 ##### GET /stations
 
-List stations with optional filters. Sort nearest-first when `lat` / `lng` are provided; otherwise sort by `name`. Include `distanceMeters` when `lat` / `lng` are provided.
+List stations with optional filters. Sort nearest-first when `lat` / `lng` are provided; otherwise sort by `name`. Include `distanceMeters` when `lat` / `lng` are provided. Compute it with the Haversine formula in [`assets/handouts/handout-station-distance.md`](./assets/handouts/handout-station-distance.md).
 
 No authentication required, but authenticated requests must also include `riderAvailability` for each station (see below).
 
@@ -419,8 +420,8 @@ No authentication required, but authenticated requests must also include `riderA
 
 | Param           | Notes                                                                               |
 | --------------- | ----------------------------------------------------------------------------------- |
-| `lat`, `lng`    | Nearby filter (both required together). Adds `distanceMeters`, sorts nearest-first. |
-| `radiusMeters`  | Optional; default `1500` when lat/lng present                                       |
+| `lat`, `lng`    | Query coordinates (both required together). Each station in the response gets `distanceMeters`; sort nearest-first. |
+| `radiusMeters`  | Query max distance in metres. Optional; default `1500` when `lat`/`lng` are present. Keep stations with `distanceMeters` ≤ this value. |
 | `type`          | `SWAP` \| `CHARGING` \| `HYBRID`                                                    |
 | `service`       | `SWAP` \| `BIKE_BAY` — compatibility / availability filter                          |
 | `batteryType`   | With `service=SWAP`: `SL-48` \| `SL-60`                                             |
@@ -429,6 +430,8 @@ No authentication required, but authenticated requests must also include `riderA
 Suspended stations remain discoverable in unfiltered lists but must not offer reservable capacity when `service` filters are applied.
 
 **Response:** `200 OK`
+
+Without `lat` / `lng`, omit `distanceMeters`:
 
 ```json
 {
@@ -447,6 +450,31 @@ Suspended stations remain discoverable in unfiltered lists but must not offer re
         "connectorTypes": ["GB-AC-48"],
         "voltageClasses": ["48V", "60V"]
       }
+    }
+  ]
+}
+```
+
+With `lat` / `lng` (for example `?lat=31.2308&lng=121.4717`), each station includes `distanceMeters` (whole metres). Stations outside `radiusMeters` are omitted:
+
+```json
+{
+  "stations": [
+    {
+      "id": "station-001",
+      "name": "Haitang Garden East Gate",
+      "type": "HYBRID",
+      "lifecycleState": "ACTIVE",
+      "latitude": 31.2308,
+      "longitude": 121.4717,
+      "address": "88 Haitang Community Road",
+      "compatibility": {
+        "services": ["SWAP", "BIKE_BAY"],
+        "batteryTypes": ["SL-48", "SL-60"],
+        "connectorTypes": ["GB-AC-48"],
+        "voltageClasses": ["48V", "60V"]
+      },
+      "distanceMeters": 0
     }
   ]
 }
@@ -775,7 +803,7 @@ The mark distribution for this project is as follows:
 | 2            | Communication and interpersonal skills | 1.5    |
 | 3            | Design Implementation                  | 0      |
 | 4            | Front-End Development                  | 0      |
-| 5            | Back-End Development                   | 13     |
-| **Total**    |                                        | 16     |
+| 5            | Back-End Development                   | 14     |
+| **Total**    |                                        | 17     |
 
 Final criterion-level marks live in [`marking/marking-scheme.json`](./marking/marking-scheme.json).

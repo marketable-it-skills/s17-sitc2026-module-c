@@ -1,5 +1,5 @@
 {
-  "totalMark": 16,
+  "totalMark": 17,
   "wsosSections": {
     "1": "Work organization and self-management",
     "2": "Communication and interpersonal skills",
@@ -43,7 +43,7 @@
         {
           "type": "measurement",
           "description": "B1 - POST /auth/login returns 200 with opaque token for a seed rider",
-          "maxMark": 0.25,
+          "maxMark": 0.5,
           "wsosSection": 5,
           "extraDescription": "Bruno: auth/B1 - login.yml — body.token is string sl_tok_rider-001.",
           "calculation": { "type": "pass-or-fail" }
@@ -189,7 +189,7 @@
         {
           "type": "measurement",
           "description": "D5 - GET /stations/{id} returns detail with compatibility",
-          "maxMark": 0.25,
+          "maxMark": 0.5,
           "wsosSection": 5,
           "extraDescription": "Bruno: stations/D5 - station-detail.yml — station-001 HYBRID; compatibility includes SWAP, BIKE_BAY, SL-48, GB-AC-48, 48V.",
           "calculation": { "type": "pass-or-fail" }
@@ -290,7 +290,7 @@
         {
           "type": "measurement",
           "description": "E8 - POST /services/{id}/confirm completes SWAP with inventory exchange and PAYG snapshot",
-          "maxMark": 0.5,
+          "maxMark": 0.75,
           "wsosSection": 5,
           "extraDescription": "Bruno: services/E8 - confirm-swap-service.yml and services/E8 - confirm-swap-me-battery.yml — state CONFIRMED, batteryInId battery-101, priceYuan 5, priceCode SWAP_SL-48; GET /me currentBatteryId updates.",
           "calculation": { "type": "pass-or-fail" }
@@ -351,7 +351,7 @@
         {
           "type": "measurement",
           "description": "F3 - GET /charging-status auto-transitions to READY_FOR_COLLECTION when Station Service completes",
-          "maxMark": 0.5,
+          "maxMark": 0.75,
           "wsosSection": 5,
           "extraDescription": "Bruno: services/F3 - get-charging-status.yml and services/F3 - wait-charging-ready.yml — after ~15s session, service.state READY_FOR_COLLECTION and charging.status COMPLETED.",
           "calculation": { "type": "pass-or-fail" }

@@ -69,7 +69,7 @@ INSERT INTO `users` (
   (
     'rider-001',
     'lin.xiaoyu@swaploop.test',
-    '$2b$10$0XcesstTUTFQHFTZmq7dRurfxcNzJCN1cVctbOYYzHdUkzmOl4blO',
+    '$2y$10$0XcesstTUTFQHFTZmq7dRurfxcNzJCN1cVctbOYYzHdUkzmOl4blO',
     'sl_tok_rider-001',
     'Lin Xiaoyu',
     'RIDER',
@@ -83,7 +83,7 @@ INSERT INTO `users` (
   (
     'rider-002',
     'chen.wei@swaploop.test',
-    '$2b$10$0XcesstTUTFQHFTZmq7dRurfxcNzJCN1cVctbOYYzHdUkzmOl4blO',
+    '$2y$10$0XcesstTUTFQHFTZmq7dRurfxcNzJCN1cVctbOYYzHdUkzmOl4blO',
     'sl_tok_rider-002',
     'Chen Wei',
     'RIDER',
@@ -97,7 +97,7 @@ INSERT INTO `users` (
   (
     'rider-003',
     'zhao.min@swaploop.test',
-    '$2b$10$0XcesstTUTFQHFTZmq7dRurfxcNzJCN1cVctbOYYzHdUkzmOl4blO',
+    '$2y$10$0XcesstTUTFQHFTZmq7dRurfxcNzJCN1cVctbOYYzHdUkzmOl4blO',
     'sl_tok_rider-003',
     'Zhao Min',
     'RIDER',
@@ -111,7 +111,7 @@ INSERT INTO `users` (
   (
     'rider-006',
     'sun.hao@swaploop.test',
-    '$2b$10$0XcesstTUTFQHFTZmq7dRurfxcNzJCN1cVctbOYYzHdUkzmOl4blO',
+    '$2y$10$0XcesstTUTFQHFTZmq7dRurfxcNzJCN1cVctbOYYzHdUkzmOl4blO',
     'sl_tok_rider-006',
     'Sun Hao',
     'RIDER',

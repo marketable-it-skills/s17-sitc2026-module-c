@@ -21,6 +21,7 @@ The task was modularized and standardized for the Erasmus+ **"Marketable IT Skil
 - [Station Service Swagger UI](assets/api/station-service-docs/index.html)
 - [MySQL seed](assets/db/swaploop_db.sql)
 - [Bruno test suite](assets/bruno/)
+- [Station distance handout](assets/handouts/handout-station-distance.md)
 - [Marking Scheme](marking/marking-scheme.json)
 
 ## About the project

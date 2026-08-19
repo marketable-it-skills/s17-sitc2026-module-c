@@ -1,0 +1,51 @@
+[
+  {
+    "name": "Shou-Bin Lin",
+    "role": "competitor",
+    "country": "Taiwan",
+    "username": "c01",
+    "pin": "5301"
+  },
+  {
+    "name": "Emilien Marquegnies",
+    "role": "competitor",
+    "country": "Belgium",
+    "username": "c02",
+    "pin": "7602"
+  },
+  {
+    "name": "Finn Gallagher",
+    "role": "competitor",
+    "country": "United Kingdom",
+    "username": "c03",
+    "pin": "8303"
+  },
+  {
+    "name": "Marcell Györfi",
+    "role": "competitor",
+    "country": "Hungary",
+    "username": "c04",
+    "pin": "9104"
+  },
+  {
+    "name": "Ádám Hrustinszki",
+    "role": "competitor",
+    "country": "Hungary",
+    "username": "c05",
+    "pin": "7305"
+  },
+  {
+    "name": "Bevin Kabuwanwa",
+    "role": "competitor",
+    "country": "Namibia",
+    "username": "c06",
+    "pin": "6806"
+  },
+  {
+    "name": "Swaploop Test",
+    "role": "competitor",
+    "country": "Neverland",
+    "username": "c09",
+    "pin": "1579"
+  }
+]

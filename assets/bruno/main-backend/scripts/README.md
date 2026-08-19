@@ -49,6 +49,7 @@ node scripts/run-bruno-report.js --dry-parse ./reports/bruno-raw.json
 | `bruno-raw.xml` | JUnit XML |
 | `marking-report.json` | Structured aspect pass/fail vs `marking/marking-scheme.json` |
 | `marking-report.md` | Human-readable table |
+| `marking-report.html` | Styled HTML dashboard |
 
 Do not commit `reports/` (ignored via `opencollection.yml` + `reports/.gitignore`).
 
