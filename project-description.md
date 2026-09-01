@@ -33,7 +33,7 @@ In **Module C**, competitors build a **working prototype** of the **Main Backend
 
 In the overall architecture, there is a **Station Service**: a separate internal service that stands in for station / cabinet hardware and telemetry. **Station Service** simulates e-bike charging sessions and last completed charging-event telemetry for swappable battery packs. It is provided for this module, competitors do not need to implement it. Station Service APIs are **unprotected**, only to be called by the **Main Backend**.
 
-![SwapLoop Infrastructure](./assets/project-description-images/swaploop-infra.png)
+![SwapLoop Infrastructure](./assets/module-c/project-description-images/swaploop-infra.png)
 
 ## General Description of Project and Tasks
 
@@ -183,8 +183,8 @@ Example:
 
 ```json
 {
-  "code": "CONFLICT",
-  "message": "You already have an active service."
+	"code": "CONFLICT",
+	"message": "You already have an active service."
 }
 ```
 
@@ -211,7 +211,7 @@ Public liveness probe. No authentication required.
 
 ```json
 {
-  "status": "ok"
+	"status": "ok"
 }
 ```
 
@@ -248,11 +248,11 @@ The `voltageClass` (`48V` / `60V`) is derived from the selected type; it is not 
 
 ```json
 {
-  "email": "new.rider@swaploop.test",
-  "password": "password123",
-  "displayName": "New Rider",
-  "batteryMode": "SWAPPABLE",
-  "batteryType": "SL-48"
+	"email": "new.rider@swaploop.test",
+	"password": "password123",
+	"displayName": "New Rider",
+	"batteryMode": "SWAPPABLE",
+	"batteryType": "SL-48"
 }
 ```
 
@@ -260,11 +260,11 @@ The `voltageClass` (`48V` / `60V`) is derived from the selected type; it is not 
 
 ```json
 {
-  "email": "charge.rider@swaploop.test",
-  "password": "password123",
-  "displayName": "Charge Rider",
-  "batteryMode": "INTEGRATED",
-  "connectorType": "GB-AC-48"
+	"email": "charge.rider@swaploop.test",
+	"password": "password123",
+	"displayName": "Charge Rider",
+	"batteryMode": "INTEGRATED",
+	"connectorType": "GB-AC-48"
 }
 ```
 
@@ -272,7 +272,7 @@ The `voltageClass` (`48V` / `60V`) is derived from the selected type; it is not 
 
 ```json
 {
-  "token": "sl_tok_rider-xxxxxxxx"
+	"token": "sl_tok_rider-xxxxxxxx"
 }
 ```
 
@@ -297,8 +297,8 @@ Plaintext password for all seeded users: `password123`.
 
 ```json
 {
-  "email": "lin.xiaoyu@swaploop.test",
-  "password": "password123"
+	"email": "lin.xiaoyu@swaploop.test",
+	"password": "password123"
 }
 ```
 
@@ -306,7 +306,7 @@ Plaintext password for all seeded users: `password123`.
 
 ```json
 {
-  "token": "sl_tok_rider-001"
+	"token": "sl_tok_rider-001"
 }
 ```
 
@@ -324,17 +324,17 @@ Protected. Returns the authenticated user's public profile (no password or token
 
 ```json
 {
-  "id": "rider-001",
-  "email": "lin.xiaoyu@swaploop.test",
-  "displayName": "Lin Xiaoyu",
-  "role": "RIDER",
-  "status": "ACTIVE",
-  "batteryMode": "SWAPPABLE",
-  "batteryType": "SL-48",
-  "connectorType": null,
-  "voltageClass": "48V",
-  "currentBatteryId": "battery-101",
-  "partnerId": null
+	"id": "rider-001",
+	"email": "lin.xiaoyu@swaploop.test",
+	"displayName": "Lin Xiaoyu",
+	"role": "RIDER",
+	"status": "ACTIVE",
+	"batteryMode": "SWAPPABLE",
+	"batteryType": "SL-48",
+	"connectorType": null,
+	"voltageClass": "48V",
+	"currentBatteryId": "battery-101",
+	"partnerId": null
 }
 ```
 
@@ -363,44 +363,44 @@ Protected. Returns the rider's current and past activities.
 
 ```json
 {
-  "active": {
-    "id": "service-ab12cd34",
-    "type": "SWAP",
-    "riderId": "rider-001",
-    "stationId": "station-001",
-    "unitId": "unit-001",
-    "state": "RESERVED",
-    "batteryOutId": "battery-001",
-    "batteryInId": null,
-    "priceYuan": null,
-    "priceCode": null,
-    "partnerPriorityApplied": false,
-    "createdAt": "2026-08-15T12:00:00.000+08:00",
-    "expiresAt": "2026-08-15T12:00:10.000+08:00",
-    "startedAt": null,
-    "completedAt": null,
-    "timestamp": "2026-08-15T12:00:00.000+08:00"
-  },
-  "recent": [
-    {
-      "id": "service-9f81e2c0",
-      "type": "SWAP",
-      "riderId": "rider-001",
-      "stationId": "station-002",
-      "unitId": "unit-008",
-      "state": "CONFIRMED",
-      "batteryOutId": "battery-010",
-      "batteryInId": "battery-101",
-      "priceYuan": 5,
-      "priceCode": "SWAP_SL-48",
-      "partnerPriorityApplied": false,
-      "createdAt": "2026-08-14T18:00:00.000+08:00",
-      "expiresAt": "2026-08-14T18:00:10.000+08:00",
-      "startedAt": "2026-08-14T18:00:02.000+08:00",
-      "completedAt": "2026-08-14T18:00:05.000+08:00",
-      "timestamp": "2026-08-14T18:00:05.000+08:00"
-    }
-  ]
+	"active": {
+		"id": "service-ab12cd34",
+		"type": "SWAP",
+		"riderId": "rider-001",
+		"stationId": "station-001",
+		"unitId": "unit-001",
+		"state": "RESERVED",
+		"batteryOutId": "battery-001",
+		"batteryInId": null,
+		"priceYuan": null,
+		"priceCode": null,
+		"partnerPriorityApplied": false,
+		"createdAt": "2026-08-15T12:00:00.000+08:00",
+		"expiresAt": "2026-08-15T12:00:10.000+08:00",
+		"startedAt": null,
+		"completedAt": null,
+		"timestamp": "2026-08-15T12:00:00.000+08:00"
+	},
+	"recent": [
+		{
+			"id": "service-9f81e2c0",
+			"type": "SWAP",
+			"riderId": "rider-001",
+			"stationId": "station-002",
+			"unitId": "unit-008",
+			"state": "CONFIRMED",
+			"batteryOutId": "battery-010",
+			"batteryInId": "battery-101",
+			"priceYuan": 5,
+			"priceCode": "SWAP_SL-48",
+			"partnerPriorityApplied": false,
+			"createdAt": "2026-08-14T18:00:00.000+08:00",
+			"expiresAt": "2026-08-14T18:00:10.000+08:00",
+			"startedAt": "2026-08-14T18:00:02.000+08:00",
+			"completedAt": "2026-08-14T18:00:05.000+08:00",
+			"timestamp": "2026-08-14T18:00:05.000+08:00"
+		}
+	]
 }
 ```
 
@@ -418,14 +418,14 @@ No authentication required, but authenticated requests must also include `riderA
 
 **Query parameters:**
 
-| Param           | Notes                                                                               |
-| --------------- | ----------------------------------------------------------------------------------- |
-| `lat`, `lng`    | Query coordinates (both required together). Each station in the response gets `distanceMeters`; sort nearest-first. |
+| Param           | Notes                                                                                                                                  |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `lat`, `lng`    | Query coordinates (both required together). Each station in the response gets `distanceMeters`; sort nearest-first.                    |
 | `radiusMeters`  | Query max distance in metres. Optional; default `1500` when `lat`/`lng` are present. Keep stations with `distanceMeters` ≤ this value. |
-| `type`          | `SWAP` \| `CHARGING` \| `HYBRID`                                                    |
-| `service`       | `SWAP` \| `BIKE_BAY` — compatibility / availability filter                          |
-| `batteryType`   | With `service=SWAP`: `SL-48` \| `SL-60`                                             |
-| `connectorType` | With `service=BIKE_BAY`: `GB-AC-48` \| `GB-AC-60`                                   |
+| `type`          | `SWAP` \| `CHARGING` \| `HYBRID`                                                                                                       |
+| `service`       | `SWAP` \| `BIKE_BAY` — compatibility / availability filter                                                                             |
+| `batteryType`   | With `service=SWAP`: `SL-48` \| `SL-60`                                                                                                |
+| `connectorType` | With `service=BIKE_BAY`: `GB-AC-48` \| `GB-AC-60`                                                                                      |
 
 Suspended stations remain discoverable in unfiltered lists but must not offer reservable capacity when `service` filters are applied.
 
@@ -435,23 +435,23 @@ Without `lat` / `lng`, omit `distanceMeters`:
 
 ```json
 {
-  "stations": [
-    {
-      "id": "station-001",
-      "name": "Haitang Garden East Gate",
-      "type": "HYBRID",
-      "lifecycleState": "ACTIVE",
-      "latitude": 31.2308,
-      "longitude": 121.4717,
-      "address": "88 Haitang Community Road",
-      "compatibility": {
-        "services": ["SWAP", "BIKE_BAY"],
-        "batteryTypes": ["SL-48", "SL-60"],
-        "connectorTypes": ["GB-AC-48"],
-        "voltageClasses": ["48V", "60V"]
-      }
-    }
-  ]
+	"stations": [
+		{
+			"id": "station-001",
+			"name": "Haitang Garden East Gate",
+			"type": "HYBRID",
+			"lifecycleState": "ACTIVE",
+			"latitude": 31.2308,
+			"longitude": 121.4717,
+			"address": "88 Haitang Community Road",
+			"compatibility": {
+				"services": ["SWAP", "BIKE_BAY"],
+				"batteryTypes": ["SL-48", "SL-60"],
+				"connectorTypes": ["GB-AC-48"],
+				"voltageClasses": ["48V", "60V"]
+			}
+		}
+	]
 }
 ```
 
@@ -459,24 +459,24 @@ With `lat` / `lng` (for example `?lat=31.2308&lng=121.4717`), each station inclu
 
 ```json
 {
-  "stations": [
-    {
-      "id": "station-001",
-      "name": "Haitang Garden East Gate",
-      "type": "HYBRID",
-      "lifecycleState": "ACTIVE",
-      "latitude": 31.2308,
-      "longitude": 121.4717,
-      "address": "88 Haitang Community Road",
-      "compatibility": {
-        "services": ["SWAP", "BIKE_BAY"],
-        "batteryTypes": ["SL-48", "SL-60"],
-        "connectorTypes": ["GB-AC-48"],
-        "voltageClasses": ["48V", "60V"]
-      },
-      "distanceMeters": 0
-    }
-  ]
+	"stations": [
+		{
+			"id": "station-001",
+			"name": "Haitang Garden East Gate",
+			"type": "HYBRID",
+			"lifecycleState": "ACTIVE",
+			"latitude": 31.2308,
+			"longitude": 121.4717,
+			"address": "88 Haitang Community Road",
+			"compatibility": {
+				"services": ["SWAP", "BIKE_BAY"],
+				"batteryTypes": ["SL-48", "SL-60"],
+				"connectorTypes": ["GB-AC-48"],
+				"voltageClasses": ["48V", "60V"]
+			},
+			"distanceMeters": 0
+		}
+	]
 }
 ```
 
@@ -484,27 +484,27 @@ With bearer token, each station must also include `riderAvailability` computed f
 
 ```json
 {
-  "stations": [
-    {
-      "id": "station-001",
-      "name": "Haitang Garden East Gate",
-      "type": "HYBRID",
-      "lifecycleState": "ACTIVE",
-      "latitude": 31.2308,
-      "longitude": 121.4717,
-      "address": "88 Haitang Community Road",
-      "compatibility": {
-        "services": ["SWAP", "BIKE_BAY"],
-        "batteryTypes": ["SL-48", "SL-60"],
-        "connectorTypes": ["GB-AC-48"],
-        "voltageClasses": ["48V", "60V"]
-      },
-      "riderAvailability": {
-        "compatibleReadyBattery": true,
-        "compatibleChargingBay": false
-      }
-    }
-  ]
+	"stations": [
+		{
+			"id": "station-001",
+			"name": "Haitang Garden East Gate",
+			"type": "HYBRID",
+			"lifecycleState": "ACTIVE",
+			"latitude": 31.2308,
+			"longitude": 121.4717,
+			"address": "88 Haitang Community Road",
+			"compatibility": {
+				"services": ["SWAP", "BIKE_BAY"],
+				"batteryTypes": ["SL-48", "SL-60"],
+				"connectorTypes": ["GB-AC-48"],
+				"voltageClasses": ["48V", "60V"]
+			},
+			"riderAvailability": {
+				"compatibleReadyBattery": true,
+				"compatibleChargingBay": false
+			}
+		}
+	]
 }
 ```
 
@@ -575,8 +575,8 @@ Seeded fixtures:
 
 ```json
 {
-  "type": "SWAP",
-  "stationId": "station-001"
+	"type": "SWAP",
+	"stationId": "station-001"
 }
 ```
 
@@ -584,20 +584,20 @@ Seeded fixtures:
 
 ```json
 {
-  "id": "service-ab12cd34",
-  "type": "SWAP",
-  "riderId": "rider-001",
-  "stationId": "station-001",
-  "unitId": "unit-001",
-  "state": "RESERVED",
-  "batteryOutId": "battery-001",
-  "batteryInId": null,
-  "priceYuan": null,
-  "priceCode": null,
-  "createdAt": "2026-08-15T12:00:00.000+08:00",
-  "expiresAt": "2026-08-15T12:00:10.000+08:00",
-  "startedAt": null,
-  "completedAt": null
+	"id": "service-ab12cd34",
+	"type": "SWAP",
+	"riderId": "rider-001",
+	"stationId": "station-001",
+	"unitId": "unit-001",
+	"state": "RESERVED",
+	"batteryOutId": "battery-001",
+	"batteryInId": null,
+	"priceYuan": null,
+	"priceCode": null,
+	"createdAt": "2026-08-15T12:00:00.000+08:00",
+	"expiresAt": "2026-08-15T12:00:10.000+08:00",
+	"startedAt": null,
+	"completedAt": null
 }
 ```
 
@@ -647,23 +647,23 @@ Protected. Owner only. For `CHARGING` services. Exposes live bike-bay charging t
 
 ```json
 {
-  "service": {
-    "id": "service-ab12cd34",
-    "type": "CHARGING",
-    "state": "CHARGING"
-  },
-  "charging": {
-    "status": "CHARGING",
-    "startedAt": "2026-08-15T12:01:00.000+08:00",
-    "endsAt": "2026-08-15T12:01:15.000+08:00",
-    "samples": [
-      {
-        "socPercent": 42,
-        "chargingPowerKw": 1.2,
-        "temperature": 31.5
-      }
-    ]
-  }
+	"service": {
+		"id": "service-ab12cd34",
+		"type": "CHARGING",
+		"state": "CHARGING"
+	},
+	"charging": {
+		"status": "CHARGING",
+		"startedAt": "2026-08-15T12:01:00.000+08:00",
+		"endsAt": "2026-08-15T12:01:15.000+08:00",
+		"samples": [
+			{
+				"socPercent": 42,
+				"chargingPowerKw": 1.2,
+				"temperature": 31.5
+			}
+		]
+	}
 }
 ```
 
@@ -721,37 +721,37 @@ Public catalog of active PAYG rates. Receipts still use snapshotted service fiel
 
 ```json
 {
-  "currency": "CNY",
-  "items": [
-    {
-      "priceCode": "SWAP_SL-48",
-      "serviceType": "SWAP",
-      "batteryType": "SL-48",
-      "connectorType": null,
-      "amountYuan": 5
-    },
-    {
-      "priceCode": "SWAP_SL-60",
-      "serviceType": "SWAP",
-      "batteryType": "SL-60",
-      "connectorType": null,
-      "amountYuan": 7
-    },
-    {
-      "priceCode": "CHARGE_GB-AC-48",
-      "serviceType": "CHARGING",
-      "batteryType": null,
-      "connectorType": "GB-AC-48",
-      "amountYuan": 3
-    },
-    {
-      "priceCode": "CHARGE_GB-AC-60",
-      "serviceType": "CHARGING",
-      "batteryType": null,
-      "connectorType": "GB-AC-60",
-      "amountYuan": 4
-    }
-  ]
+	"currency": "CNY",
+	"items": [
+		{
+			"priceCode": "SWAP_SL-48",
+			"serviceType": "SWAP",
+			"batteryType": "SL-48",
+			"connectorType": null,
+			"amountYuan": 5
+		},
+		{
+			"priceCode": "SWAP_SL-60",
+			"serviceType": "SWAP",
+			"batteryType": "SL-60",
+			"connectorType": null,
+			"amountYuan": 7
+		},
+		{
+			"priceCode": "CHARGE_GB-AC-48",
+			"serviceType": "CHARGING",
+			"batteryType": null,
+			"connectorType": "GB-AC-48",
+			"amountYuan": 3
+		},
+		{
+			"priceCode": "CHARGE_GB-AC-60",
+			"serviceType": "CHARGING",
+			"batteryType": null,
+			"connectorType": "GB-AC-60",
+			"amountYuan": 4
+		}
+	]
 }
 ```
 
@@ -767,9 +767,9 @@ Protected optional helper for debugging. Fetches Station Service last-charge tel
 
 ```json
 {
-  "batteryId": "battery-001",
-  "outcome": "SAFE",
-  "unitId": "unit-001"
+	"batteryId": "battery-001",
+	"outcome": "SAFE",
+	"unitId": "unit-001"
 }
 ```
 
@@ -805,5 +805,3 @@ The mark distribution for this project is as follows:
 | 4            | Front-End Development                  | 0      |
 | 5            | Back-End Development                   | 14     |
 | **Total**    |                                        | 17     |
-
-Final criterion-level marks live in [`marking/marking-scheme.json`](./marking/marking-scheme.json).

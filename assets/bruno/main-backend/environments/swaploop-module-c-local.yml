@@ -1,7 +1,7 @@
 name: swaploop-module-c-local
 variables:
   - name: baseUrl
-    value: https://c09-1579-module-c-solution.sitc.skillsit.eu/api/v1
+    value: http://localhost:5000/api/v1
     description: ""
   - name: baseUrlDev
     value: http://localhost:5000/api/v1
@@ -10,7 +10,7 @@ variables:
     value: https://c10-7510-module-c-solution.sitc.skillsit.eu/api/v1
     description: ""
   - name: stationServiceBaseUrl
-    value: https://c09-1579-station-service.sitc.skillsit.eu
+    value: http://localhost:4020
     description: Station Service (DB reset + telemetry)
   - name: stationServiceBaseUrlDeployment
     value: https://c10-7510-station-service.sitc.skillsit.eu

@@ -5,7 +5,7 @@ info:
 
 http:
   method: POST
-  url: "{{baseUrl}}/batteries/battery-001/evaluate-last-charge2"
+  url: "{{baseUrl}}/batteries/battery-001/evaluate-last-charge"
   headers:
     - name: Authorization
       value: "Bearer sl_tok_rider-001"
