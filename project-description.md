@@ -54,10 +54,41 @@ Build the API with a server-side language and framework available in the competi
 - Use **MySQL** for persistence. Import [`assets/db/swaploop_db.sql`](./assets/db/swaploop_db.sql).
 - Implement the API according to [`assets/api/main-backend.openapi.yaml`](./assets/api/main-backend.openapi.yaml). That document is the contract for paths, requests, responses, security, and errors. Response and request schemas, response status codes and error codes must match the OpenAPI contract exactly. Offline Swagger UI: [`assets/api/main-backend-docs/index.html`](./assets/api/main-backend-docs/index.html).
 - A Bruno / OpenCollection suite for the **Main Backend** is provided under [`assets/bruno/main-backend`](./assets/bruno/main-backend).
-- Access the provided **Station Service** at `https://cXX-YYYY-station-service.sitc.skillsit.eu` (replace `cXX` / `YYYY` with your competition username and PIN). Its API is unprotected. See [`assets/api/station-service-openapi.yaml`](./assets/api/station-service-openapi.yaml), the offline Swagger UI at [`assets/api/station-service-docs/index.html`](./assets/api/station-service-docs/index.html), and the Station Service Bruno suite under [`assets/bruno/station-service`](./assets/bruno/station-service).
-- **Database reset:** To reload the Module C MySQL seed (`assets/db/swaploop_db.sql`), call Station Service `POST https://cXX-YYYY-station-service.sitc.skillsit.eu/reset`. No authentication is required. Assessors and the provided Bruno suites use this endpoint the same way.
+- Access the provided **Station Service** at `http://localhost:4020` (started locally with Docker Compose, see [Setup](#setup)). Its API is unprotected. See [`assets/api/station-service-openapi.yaml`](./assets/api/station-service-openapi.yaml), the offline Swagger UI at [`assets/api/station-service-docs/index.html`](./assets/api/station-service-docs/index.html), and the Station Service Bruno suite under [`assets/bruno/station-service`](./assets/bruno/station-service).
+- **Database reset:** To reload the Module C MySQL seed (`assets/db/swaploop_db.sql`), call Station Service `POST http://localhost:4020/reset`. No authentication is required. Assessors and the provided Bruno suites use this endpoint the same way.
 
-All Main Backend API paths in this document are relative to `/api/v1` on whatever host you run (for example `POST /auth/login` means `POST {baseUrl}/api/v1/auth/login`). Your deployed Main Backend is available at `https://cXX-YYYY-module-c.sitc.skillsit.eu` (replace `cXX` / `YYYY` with your competition username and PIN).
+All Main Backend API paths in this document are relative to `/api/v1` on whatever host you run (for example `POST /auth/login` means `POST {baseUrl}/api/v1/auth/login`).
+
+### Setup
+
+The Station Service, a MySQL instance seeded with [`assets/db/swaploop_db.sql`](./assets/db/swaploop_db.sql), and phpMyAdmin are all provided as a Docker Compose stack under [`assets/station-service`](./assets/station-service). Start it before working on the Main Backend:
+
+```bash
+cd assets/station-service
+cp .env.example .env
+docker compose up -d
+```
+
+With the default `.env` values the stack is reachable at:
+
+| Service | Host URL |
+| --- | --- |
+| Station Service | `http://localhost:4020` |
+| MySQL | `localhost:3306` (user `root`, password `toor`, database `swaploop_db`) |
+| phpMyAdmin | `http://localhost:8082` |
+
+All values in `docker-compose.yaml` come from `.env` (there are no compose defaults), so edit `.env` if any of these ports collide on your machine, and point your Main Backend at the Station Service through `STATION_SERVICE_BASE_URL`.
+
+MySQL loads the seed dump on first start. Useful commands:
+
+```bash
+docker compose ps                       # check the stack
+docker compose logs -f station-service  # follow Station Service logs
+docker compose down                     # stop the stack
+docker compose down -v && docker compose up -d  # wipe the volume and re-seed
+```
+
+Calling `POST http://localhost:4020/reset` reloads the same seed dump without restarting anything.
 
 ### Database structure
 
